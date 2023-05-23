@@ -1,0 +1,17 @@
+# Ignore build artifacts
+src/build/
+
+# Ignore log and data files
+*.log
+*.csv
+*.vtk
+
+# Ignore mac files
+*.DS_Store
+
+# Ignore image and gif
+*.png
+*.gif
+
+
+
