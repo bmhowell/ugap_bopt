@@ -15,9 +15,6 @@ class Voxel {
 
 private:
     // MEMBER VARIABLES
-    
-    // output file path
-    std::string file_path;                                  // set correct file path to output dependent on computer
 
     // simulation parameters
     int    sim_id;                                          // |   ---   |  simulation ID
@@ -27,6 +24,7 @@ private:
     int    nodes;
     float  uvt;                                             // |    s    |  uv exposure time
 
+    double timer;                                           // |    s    |  timer for simulation
     float total_time;                                       // | unitless|  total number of nodes
     float coord_map_const;
 
@@ -143,6 +141,10 @@ private:
     std::ofstream print_avg_concentrations;
 
 public:
+
+    // output file path
+    std::string file_path;                                  // set correct file path to output dependent on computer
+
     /* overload constructor */
     Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT);
 

@@ -3,7 +3,6 @@
 // tfinal, dt, node, idsim, temp, rp, vp, uvi, uvt
 
 Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT){
-    std::cout << "Initializing parameters: " << std::endl;
 
     // MEMBER VARIABLES
     // representative volume element RVE simulation parameters
@@ -13,7 +12,7 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     sim_id  = IDSIM;                                            // |   ---   |  simulation id
     theta0  = temp;                                             // |    K    | initial and ambient temperature
     I0      = UVI;                                              // |  W/m^2  |  UV intensity
-    uvt     = uvt;                                              // |    s    | uv exposure time
+    uvt     = UVT;                                              // |    s    | uv exposure time
 
     // set file path
     file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
@@ -379,18 +378,18 @@ void Voxel::ComputeRxnRateConstants() {
 
 
 double Voxel::IRate(std::vector<double> &conc_PI, double I0, double z, int node) const {
-    if (material_type[node] == 1){
+    if (material_type[node] == 1 && timer < uvt){
         // material is ugap
         // return (-phi * eps * I0 * conc_PI[node] * exp( -eps*conc_PI[node]*z) / 2);
         return (-phi * eps * I0 * conc_PI[node] * exp( -eps*conc_PI[node]*z) / 2);
     }
     
-    else if (material_type[node] == 2){
+    else if (material_type[node] == 2 && timer < uvt){
         // material is interfacial
         return (-phi * eps * I0 * conc_PI[node] * exp( -eps*conc_PI[node]*z) / 2);
     }
     else{
-        // material is particle
+        // material is particle or exposure time is past
         return 0.;
     }
 
@@ -591,6 +590,8 @@ double Voxel::TempRate(std::vector<double> &temperature,
                     + therm_cond_avg[4]*(temperature[node+N_PLANE_NODES]-temperature[node])
                     - therm_cond_avg[5]*(temperature[node]-temperature[node-N_PLANE_NODES])
                     ) * denom; 
+    
+    diff_theta[node] = heat_diffuse;
 
     // compute the heat release by all exothermic (bond formation) reactions
     heat_rxn = (  k_i[node] * conc_PIdot[node] * conc_M[node]
@@ -599,7 +600,7 @@ double Voxel::TempRate(std::vector<double> &temperature,
                 ) * dHp;
 
     // material is resin
-    if (material_type[node] == 1){
+    if (material_type[node] == 1 && timer < uvt){
         heat_uv = eps
                 * intensity
                 * conc_PI[node]
@@ -607,7 +608,7 @@ double Voxel::TempRate(std::vector<double> &temperature,
     }
 
     // material is interface
-    else if (material_type[node] == 2){
+    else if (material_type[node] == 2 && timer < uvt){
         heat_uv = (   eps
                     * intensity
                     * conc_PI[node]
@@ -617,18 +618,19 @@ double Voxel::TempRate(std::vector<double> &temperature,
                     * exp(  -eps_nacl*(len_block-current_coords[2]*coord_map_const)  )
                     ) / 2;
     }
-    else{
-        // material is particle
+
+    // material is particle
+    else if (material_type[node] == 0 && timer < uvt){
         heat_uv = eps_nacl
                 * intensity
                 * exp(  -eps_nacl*(len_block-current_coords[2]*coord_map_const)  );
     }
-    // heat_uv = eps
-    //             * intensity
-    //             * conc_PI[node]
-    //             * exp(  -eps*conc_PI[node]*(len_block-current_coords[2]*coord_map_const)  );
+    
+    // exposure time is up
+    else{
+        heat_uv = 0;
+    }
 
-    diff_theta[node] = heat_diffuse;
     return heat_diffuse + (heat_rxn + heat_uv) / density[node] / heat_capacity[node];
 };
 
@@ -657,20 +659,18 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
             if (    current_coords[0] != 0 && current_coords[0] != (nodes-1)
                  && current_coords[1] != 0 && current_coords[1] != (nodes-1)
                  && current_coords[2] != 0 && current_coords[2] != (nodes-1)){
-                // std::cout << "\nINTERNAL NODE: " << std::endl; 
 
                 // solve equations 1-5
-                c_PI_next[node]    = c_PI[node] + dt*IRate(c_PI, I0, depth, node); 
+                c_PI_next[node]    = c_PI[node]    + dt*IRate(c_PI, I0, depth, node); 
                 c_PIdot_next[node] = c_PIdot[node] + dt*PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node); 
-                c_Mdot_next[node]  = c_Mdot[node] + dt*MdotRate(c_Mdot, c_PIdot, c_M, node); 
-                c_M_next[node]     = c_Mdot[node] + dt*MRate(c_M, c_Mdot, c_PIdot, node); 
-                theta_next[node]   = theta[node] + dt*TempRate(theta, c_M, c_Mdot, c_PI, c_PIdot, I0, node);
+                c_Mdot_next[node]  = c_Mdot[node]  + dt*MdotRate(c_Mdot, c_PIdot, c_M, node); 
+                c_M_next[node]     = c_Mdot[node]  + dt*MRate(c_M, c_Mdot, c_PIdot, node); 
+                theta_next[node]   = theta[node]   + dt*TempRate(theta, c_M, c_Mdot, c_PI, c_PIdot, I0, node);
                     }
             // BOUNDARY NODES
             else if (   current_coords[0] == 0 or current_coords[0] == (nodes-1)
                      or current_coords[1] == 0 or current_coords[1] == (nodes-1)
                      or current_coords[2] == 0 or current_coords[2] == (nodes-1)){
-                // std::cout << "\nBOUNDARY NODE: " << std::endl; 
                 
 
                 // solve non-spatially dependent equations
@@ -769,16 +769,16 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                             theta_1(N_VOL_NODES);
 
         for (int node = 0; node < N_VOL_NODES; node++){
-            c_PI_0[node] = c_PI[node];
-            c_PI_1[node] = c_PI[node];
+            c_PI_0[node]    = c_PI[node];
+            c_PI_1[node]    = c_PI[node];
             c_PIdot_0[node] = c_PIdot[node];
             c_PIdot_1[node] = c_PIdot[node];
-            c_Mdot_0[node] = c_Mdot[node];
-            c_Mdot_1[node] = c_Mdot[node];
-            c_M_0[node] = c_M[node];
-            c_M_1[node] = c_M[node];
-            theta_0[node] = theta[node];
-            theta_1[node] = theta[node];
+            c_Mdot_0[node]  = c_Mdot[node];
+            c_Mdot_1[node]  = c_Mdot[node];
+            c_M_0[node]     = c_M[node];
+            c_M_1[node]     = c_M[node];
+            theta_0[node]   = theta[node];
+            theta_1[node]   = theta[node];
         }
 
         int count = 0;
@@ -1872,7 +1872,7 @@ void Voxel::Simulate(int method, int save_voxel){
                            0);
 
     // begin time stepping
-    double timer = 0.;
+    timer = 0.;
     int file_counter = 1;
     for (int t = 0; t < N_TIME_STEPS; t++) {
 

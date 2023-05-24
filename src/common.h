@@ -3,8 +3,9 @@
 
 // Program Constants
 #define TFINAL   30.0
-#define NODE     21
-#define DT       1e-3
+#define NODE     11        // 11,      15,        21,   25,     31,     41,   51
+#define DT       1.25e-3   // 1.25e-3, 7.25e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.3e-5, 5.9e-5 (FOR SHANNA DM0)
+
 
 // input/output BOpt data structure
 typedef struct bopt {
@@ -21,6 +22,7 @@ typedef struct sim{
     int method;         // simulation method
     int save_voxel;     // save voxel data
     int save_density;   // save density data
+    int bootstrap;      // bootstrap
 } sim;
 
 #endif
