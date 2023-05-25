@@ -5,6 +5,7 @@ src/build/
 *.log
 *.csv
 *.vtk
+*.dat
 
 # Ignore mac files
 *.DS_Store

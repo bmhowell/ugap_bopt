@@ -15,11 +15,11 @@
 
 // declare functions
 int   find_arg_idx(int argc, char** argv, const char* option); 
-float gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi); 
+void  gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi); 
 void  bootstrap(std::vector<bopt> *bopt, int num_sims);
 void  write_to_file(bopt& b, int id); 
 void  store_tot_data(std::vector<bopt> *bopti, int num_sims); 
-int  read_data(std::vector<bopt> *bopti); 
+int   read_data(std::vector<bopt> *bopti); 
 
 int main(int argc, char** argv) {
 
@@ -41,24 +41,20 @@ int main(int argc, char** argv) {
     simi.bootstrap    = 1;      // bootstrap data
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
-    // std::vector<bopt> *bopti = new std::vector<bopt>(num_sims); // stores all info (header + elements) on heap
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
 
     // check if data exists
     int num_sims = 10;
     if (simi.bootstrap != 1){
-        // load existing data
         int ndata0 = read_data(bopti);
     }else{
-        // bootstrap input variables
         bootstrap(bopti, num_sims);
-        
     }
     
     // run simulations
     for (int id = 0; id < num_sims; ++id) {
         bopt b; 
-        b.obj = gen_data(TFINAL, DT, NODE, id, b, simi);
+        gen_data(TFINAL, DT, NODE, id, b, simi);
         write_to_file(b, id); 
 
         // store data point
@@ -87,7 +83,7 @@ int find_arg_idx(int argc, char** argv, const char* option) {
 }
 
 // Generate data
-float gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi) {
+void gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi) {
     
     // unpack input data
     double temp = bopti.temp;
@@ -124,7 +120,6 @@ float gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& s
 
     VoxelSystem1.Simulate(nm, sv_v);
 
-    return obj;
 }
 
 // initialize input variables
@@ -145,17 +140,12 @@ void bootstrap(std::vector<bopt> *bopti, int num_sims) {
     // generate random values
     for (int id = 0; id < num_sims; ++id) {
         bopt b; 
-        // bopti[id].temp = (btemp[1] - btemp[0]) * distribution(gen) + btemp[0];
         b.temp = (btemp[1] - btemp[0]) * distribution(gen) + btemp[0];
-        // bopti[id].rp   = (brp[1] - brp[0])     * distribution(gen) + brp[0];
         b.rp   = (brp[1] - brp[0])     * distribution(gen) + brp[0];
-        // bopti[id].vp   = (bvp[1] - bvp[0])     * distribution(gen) + bvp[0];
         b.vp   = (bvp[1] - bvp[0])     * distribution(gen) + bvp[0];
-        // bopti[id].uvi  = (buvi[1] - buvi[0])   * distribution(gen) + buvi[0];
         b.uvi  = (buvi[1] - buvi[0])   * distribution(gen) + buvi[0];
-        // bopti[id].uvt  = (buvt[1]  - buvt[0])  * distribution(gen) + buvt[0];
         b.uvt  = (buvt[1]  - buvt[0])  * distribution(gen) + buvt[0];
-        // bopti[id].obj  = 1000.0;
+
         b.obj  = 1000.0;
 
         bopti->push_back(b); 
@@ -175,7 +165,12 @@ void store_tot_data(std::vector<bopt> *bopti, int num_sims){
     myfile.open("output/tot_bopt.dat");
     myfile << "temp,rp,vp,uvi,uvt,obj" << std::endl;
     for (int id = 0; id < num_sims; ++id) {
-        myfile << (*bopti)[id].temp << "," << (*bopti)[id].rp << "," << (*bopti)[id].vp << "," << (*bopti)[id].uvi << "," << (*bopti)[id].uvt << "," << (*bopti)[id].obj << std::endl;
+        myfile << (*bopti)[id].temp << "," 
+               << (*bopti)[id].rp   << "," 
+               << (*bopti)[id].vp   << ","
+               << (*bopti)[id].uvi  << "," 
+               << (*bopti)[id].uvt  << "," 
+               << (*bopti)[id].obj  << std::endl;
     }
     myfile.close();
 }
