@@ -39,7 +39,7 @@ private:
     Eigen::MatrixXd m_Cov;                                // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l)
 
     // ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::VectorXd m_Mu;                                 // ∈ ℝ (m)
+    Eigen::VectorXd m_mu;                                 // ∈ ℝ (m)
 
 
 public:
@@ -91,7 +91,7 @@ public:
 
     void generate_random_points(int num_sample, int x_size, float mean, float stddev, float scale);
 
-    void predictGP(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save);
+    void predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save, std::string file_path);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points

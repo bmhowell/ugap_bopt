@@ -132,7 +132,7 @@ void GaussianProcess::generate_random_points(int num_sample, int x_size, float m
     }
 }
 
-void GaussianProcess::predictGP(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save){
+void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save, std::string file_path){
 
     std::cout << "\n--- GAUSSIAN PROCESS ---" << std::endl;
     std::cout << "x_test: \n" << x_test << std::endl;
@@ -158,7 +158,7 @@ void GaussianProcess::predictGP(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_trai
     // compute mean: Mu ∈ ℝ (l x m)
     Eigen::MatrixXd alpha;
     alpha = Ky.llt().solve(y_train);
-    m_Mu = Ks.transpose() * alpha;
+    m_mu = Ks.transpose() * alpha;
 
     // compute variance: V  ∈ ℝ (l x l)
     Eigen::MatrixXd V = Ky.llt().matrixL().solve(Ks);
@@ -172,21 +172,25 @@ void GaussianProcess::predictGP(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_trai
 
     // display results
     std::cout << "\nx_test: \n" << x_test << std::endl;
-    std::cout << "\nMu: \n" << m_Mu.transpose() << std::endl;
+    std::cout << "\nMu: \n" << m_mu.transpose() << std::endl;
     std::cout << "\nuncertainty = \n" << uncertainty.transpose() << std::endl;
-    std::cout << "\nMu - uncertainty = \n" << (m_Mu - uncertainty).transpose() << std::endl;
-    std::cout << "\nMu + uncertainty = \n" << (m_Mu + uncertainty).transpose() << std::endl;
+    std::cout << "\nMu - uncertainty = \n" << (m_mu - uncertainty).transpose() << std::endl;
+    std::cout << "\nMu + uncertainty = \n" << (m_mu + uncertainty).transpose() << std::endl;
 
     if (save == 'y'){
         std::cout << "--- saving prediction results --- " << std::endl;
         // save results
         std::ofstream save_x_test;
-        std::ofstream save_Mu;
+        std::ofstream save_mu;
         std::ofstream save_uncertainty;
 
-        save_x_test.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_x_test.dat");
-        save_Mu.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_Mu.dat");
-        save_uncertainty.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_uncertainty.dat");
+        save_x_test.open(file_path); 
+        save_mu.open(file_path);
+        save_uncertainty.open(file_path);
+
+        // save_x_test.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_x_test.dat");
+        // save_Mu.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_Mu.dat");
+        // save_uncertainty.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_uncertainty.dat");
 
         for (unsigned int i = 0; i < x_test.rows(); ++i){
             for (unsigned int j = 0; j < x_test.cols(); ++j){
@@ -199,19 +203,19 @@ void GaussianProcess::predictGP(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_trai
             save_x_test << std::endl;
         }
 
-        for (short i = 0; i < m_Mu.rows(); ++i){
-            for(short j = 0; j < m_Mu.cols(); ++j){
-                if (i < m_Mu.cols() - 1){
-                    save_Mu << m_Mu(i, j) << " ";
+        for (short i = 0; i < m_mu.rows(); ++i){
+            for(short j = 0; j < m_mu.cols(); ++j){
+                if (i < m_mu.cols() - 1){
+                    save_mu << m_mu(i, j) << " ";
                     save_uncertainty << uncertainty(i) << " ";
                 } else{
-                    save_Mu << m_Mu(i, j);
+                    save_mu << m_mu(i, j);
                     save_uncertainty << uncertainty(i);
                 }
             }
         }
         save_x_test.close();
-        save_Mu.close();
+        save_mu.close();
         save_uncertainty.close();
     }
 
@@ -302,7 +306,7 @@ Eigen::MatrixXd& GaussianProcess::get_Cov(){
 };
 
 Eigen::VectorXd& GaussianProcess::get_Mu(){
-    return m_Mu;
+    return m_mu;
 };
 
 /* mutator functions */

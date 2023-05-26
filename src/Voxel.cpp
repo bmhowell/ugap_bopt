@@ -2,7 +2,7 @@
 
 // tfinal, dt, node, idsim, temp, rp, vp, uvi, uvt
 
-Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT){
+Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH){
 
     // MEMBER VARIABLES
     // representative volume element RVE simulation parameters
@@ -15,7 +15,8 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     uvt     = UVT;                                              // |    s    | uv exposure time
 
     // set file path
-    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
+    file_path = FILE_PATH;                                      // |   ---   |  file path
+    // file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
     // file_path = "/home/brian/Documents/berkeley/materials_opt/output/";         // LINUX CENTRAL COMPUTING
 
     interfacial_nodes = 1;                                      // |   ---   |  interfacial thickness parameter

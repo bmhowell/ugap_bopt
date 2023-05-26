@@ -146,7 +146,7 @@ public:
     std::string file_path;                                  // set correct file path to output dependent on computer
 
     /* overload constructor */
-    Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT);
+    Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH);
 
     /* destructor */
     ~Voxel();

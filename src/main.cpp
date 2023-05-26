@@ -15,11 +15,12 @@
 
 // declare functions
 int   find_arg_idx(int argc, char** argv, const char* option); 
-void  gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi); 
-void  bootstrap(std::vector<bopt> *bopt, int num_sims);
+void  gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path); 
+void  bootstrap(std::vector<bopt>* bopt, int num_sims);
 void  write_to_file(bopt& b, int id); 
-void  store_tot_data(std::vector<bopt> *bopti, int num_sims); 
-int   read_data(std::vector<bopt> *bopti); 
+void  store_tot_data(std::vector<bopt>* bopti, int num_sims); 
+int   read_data(std::vector<bopt>* bopti); 
+void  to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::MatrixXd* Y);
 
 int main(int argc, char** argv) {
 
@@ -38,33 +39,47 @@ int main(int argc, char** argv) {
     simi.method       = 2;      // forward euler | 1: backward euler | 2: trap
     simi.save_voxel   = 0;      // save voxel data
     simi.save_density = 0;      // save density data
-    simi.bootstrap    = 1;      // bootstrap data
+    simi.bootstrap    = 0;      // bootstrap data
+
+    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
+    // file_path = "/home/brian/Documents/berkeley/materials_opt/output/";         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
 
-    // check if data exists
-    int num_sims = 10;
+    // STEP 1: sample data
+    int ndata0;
     if (simi.bootstrap != 1){
-        int ndata0 = read_data(bopti);
+        ndata0 = read_data(bopti);
     }else{
-        bootstrap(bopti, num_sims);
+        ndata0 = 10; 
+        bootstrap(bopti, ndata0);
     }
+
+    // convert data to Eigen matrixs
+    Eigen::MatrixXd* p_x_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 5)
+    Eigen::MatrixXd* p_y_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 1)
+    to_eigen(bopti, p_x_train, p_y_train);
     
-    // run simulations
-    for (int id = 0; id < num_sims; ++id) {
-        bopt b; 
-        gen_data(TFINAL, DT, NODE, id, b, simi);
-        write_to_file(b, id); 
+    // set up gaussian process
+    GaussianProcess gp_ugap(1.0f, 1.0f, "RBF");
 
-        // store data point
-        bopti->push_back(b);
-        std::cout << "here" << id << std::endl;
-    }
+    // int num_sims = 10000; 
+    // int ndata    = ndata0; 
+    // for (int id = 0; id < num_sims; ++id) {
 
-    // store data
-    store_tot_data(bopti, num_sims);
+    //     // STEP 2: fit model
+    //     bopt b; 
+    //     gen_data(TFINAL, DT, NODE, id, b, simi, file_path);
+    //     write_to_file(b, id); 
 
+    //     // store data point
+    //     bopti->push_back(b);
+    //     ndata++; 
+    // }
+
+    // // store data
+    // store_tot_data(bopti, num_sims);
     delete bopti;
     
     std::cout << "Hello World!" << std::endl;
@@ -83,7 +98,7 @@ int find_arg_idx(int argc, char** argv, const char* option) {
 }
 
 // Generate data
-void gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi) {
+void gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path) {
     
     // unpack input data
     double temp = bopti.temp;
@@ -112,7 +127,7 @@ void gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& si
     
     
     // run simulation
-    Voxel VoxelSystem1(tfinal, dt, node, idsim, temp, uvi, uvt);
+    Voxel VoxelSystem1(tfinal, dt, node, idsim, temp, uvi, uvt, file_path);
     VoxelSystem1.ComputeParticles(rp, vp);
     if (sv_d == 1){
         VoxelSystem1.Density2File();
@@ -215,3 +230,13 @@ int  read_data(std::vector<bopt> *bopti){
     return id; 
 }
 
+void  to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::MatrixXd* Y){
+    for (int i = 0; i < (*data).size(); ++i) {
+        (*X)(i, 0) = (*data)[i].temp;
+        (*X)(i, 1) = (*data)[i].rp;
+        (*X)(i, 2) = (*data)[i].vp;
+        (*X)(i, 3) = (*data)[i].uvi;
+        (*X)(i, 4) = (*data)[i].uvt;
+        (*Y)(i, 0) = (*data)[i].obj;
+    }
+}
