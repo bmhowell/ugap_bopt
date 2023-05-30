@@ -20,7 +20,8 @@ void  bootstrap(std::vector<bopt>* bopt, int num_sims);
 void  write_to_file(bopt& b, int id); 
 void  store_tot_data(std::vector<bopt>* bopti, int num_sims); 
 int   read_data(std::vector<bopt>* bopti); 
-void  to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::MatrixXd* Y);
+void  to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y);
+void  gen_test_points(constraints& c, Eigen::MatrixXd* X); 
 
 int main(int argc, char** argv) {
 
@@ -33,6 +34,20 @@ int main(int argc, char** argv) {
         std::cout << "-s <int>: set particle initialization seed" << std::endl;
         return 0;
     }
+
+    // optimization constraint
+    constraints c; 
+    c.min_temp = 273.15; 
+    c.max_temp = 350.0;
+    c.min_rp   = 0.00084 / 200;
+    c.max_rp   = 0.00084 / 10;
+    c.min_vp   = 0.5;
+    c.max_vp   = 0.8;
+    c.min_uvi  = 2.0;
+    c.max_uvi  = 100.0;
+    c.min_uvt  = 1.0;
+    c.max_uvt  = 30.0;
+
 
     // simulation settings
     sim simi;
@@ -49,37 +64,61 @@ int main(int argc, char** argv) {
 
     // STEP 1: sample data
     int ndata0;
-    if (simi.bootstrap != 1){
+    if (simi.bootstrap == 0){
         ndata0 = read_data(bopti);
     }else{
         ndata0 = 10; 
         bootstrap(bopti, ndata0);
     }
 
-    // convert data to Eigen matrixs
-    Eigen::MatrixXd* p_x_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 5)
-    Eigen::MatrixXd* p_y_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 1)
-    to_eigen(bopti, p_x_train, p_y_train);
+
+    // convert data to Eigen matrices
+    Eigen::MatrixXd* x_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 5)
+    Eigen::VectorXd* y_train = new Eigen::VectorXd(ndata0);     // ∈ ℝ^(ndata x 1)
+    to_eigen(bopti, x_train, y_train);
+
+    std::cout << "x_train: \n" << *x_train << std::endl;
     
     // set up gaussian process
-    GaussianProcess gp_ugap(1.0f, 1.0f, "RBF");
+    GaussianProcess gp_ugap = GaussianProcess(1.0f, 1.0f, "RBF", file_path); 
 
-    // int num_sims = 10000; 
-    // int ndata    = ndata0; 
+    // uniformly random x_test data for GP
+    Eigen::MatrixXd* x_test = new Eigen::MatrixXd(25, 5);
+    Eigen::VectorXd* y_test = new Eigen::VectorXd(25);
+
+    gen_test_points(c, x_test); 
+
+    gp_ugap.predict(*x_test, *x_train, *y_test, *y_train, 'y'); 
+
+    int num_sims = 10000; 
+    int ndata    = ndata0; 
+
+    // // OPTIMISATION LOOP
     // for (int id = 0; id < num_sims; ++id) {
 
+    //     // generate random points
+        
+
     //     // STEP 2: fit model
+        
+
+
     //     bopt b; 
     //     gen_data(TFINAL, DT, NODE, id, b, simi, file_path);
     //     write_to_file(b, id); 
 
-    //     // store data point
+    //     store data point
     //     bopti->push_back(b);
     //     ndata++; 
     // }
 
-    // // store data
-    // store_tot_data(bopti, num_sims);
+    // store data
+    store_tot_data(bopti, num_sims);
+    
+    delete y_train;
+    delete x_train;
+    delete x_test;
+    delete y_test;
     delete bopti;
     
     std::cout << "Hello World!" << std::endl;
@@ -161,7 +200,7 @@ void bootstrap(std::vector<bopt> *bopti, int num_sims) {
         b.uvi  = (buvi[1] - buvi[0])   * distribution(gen) + buvi[0];
         b.uvt  = (buvt[1]  - buvt[0])  * distribution(gen) + buvt[0];
 
-        b.obj  = 1000.0;
+        b.obj  = -1000.0;
 
         bopti->push_back(b); 
     }
@@ -191,7 +230,7 @@ void store_tot_data(std::vector<bopt> *bopti, int num_sims){
 }
 
 int  read_data(std::vector<bopt> *bopti){
-    std::ifstream file("output/tot_bopt.dat");
+    std::ifstream file("../output/tot_bopt.dat");
     std::string line;
     std::getline(file, line); // skip first line
     int id = 0;
@@ -230,13 +269,29 @@ int  read_data(std::vector<bopt> *bopti){
     return id; 
 }
 
-void  to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::MatrixXd* Y){
+void to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y){
     for (int i = 0; i < (*data).size(); ++i) {
         (*X)(i, 0) = (*data)[i].temp;
         (*X)(i, 1) = (*data)[i].rp;
         (*X)(i, 2) = (*data)[i].vp;
         (*X)(i, 3) = (*data)[i].uvi;
         (*X)(i, 4) = (*data)[i].uvt;
-        (*Y)(i, 0) = (*data)[i].obj;
+        (*Y)(i)    = (*data)[i].obj;
     }
+}
+
+void gen_test_points(constraints& c, Eigen::MatrixXd* X){
+    // initialize input variables
+    std::random_device rd;                                          // Obtain a random seed from the hardware
+    std::mt19937 gen(rd());                                         // Seed the random number generator
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
+
+    for (int ind = 0; ind<X->rows(); ++ind){
+        (*X)(ind, 0) = (c.max_temp - c.min_temp) * distribution(gen) + c.min_temp;
+        (*X)(ind, 1) = (c.max_rp - c.min_rp)     * distribution(gen) + c.min_rp;
+        (*X)(ind, 2) = (c.max_vp - c.min_vp)     * distribution(gen) + c.min_vp;
+        (*X)(ind, 3) = (c.max_uvi - c.min_uvi)   * distribution(gen) + c.min_uvi;
+        (*X)(ind, 4) = (c.max_uvt - c.min_uvt)   * distribution(gen) + c.min_uvt;
+    }
+
 }

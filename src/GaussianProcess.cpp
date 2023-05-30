@@ -10,13 +10,15 @@ GaussianProcess::GaussianProcess() {
     m_sf = 1.0f;                       // signal noise variance
     m_kernel = "RBF";                  // covariance kernel specification
 
+    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";
 }
 
 /* overload constructor */
-GaussianProcess::GaussianProcess(float l, float sf, std::string kernel){
-    l = l;
-    sf = sf;
-    kernel = kernel;
+GaussianProcess::GaussianProcess(float L, float SF, std::string KERNEL, std::string FILE_PATH){
+    m_l = L;
+    m_sf = SF;
+    m_kernel = KERNEL;
+    file_path = FILE_PATH; 
 
     std::cout << "---------------------------------------------------------------" << std::endl;
     std::cout << "welcome to bhoptimisation.bopt!" << std::endl;
@@ -84,30 +86,30 @@ void GaussianProcess::unconditionedGP(){
 
 void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y){
     if (m_kernel == "RBF"){
-        if (X.cols() != Y.cols()){
+        if (X.rows() != Y.rows()){
             // kernel construction algorithm for non-symmetric matrices
-            m_Cov = Eigen::MatrixXd::Zero(X.cols(), Y.cols());
-            for (int i = 0; i < X.cols(); i++){
-                for (int j = 0; j < Y.cols(); j++){
-                    m_Cov(i, j) = (m_sf * m_sf) * exp( -(X.col(i) - Y.col(j)).squaredNorm() / 2 / (m_l * m_l) );
+            m_Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = 0; j < Y.rows(); j++){
+                    m_Cov(i, j) = (m_sf * m_sf) * exp( -(X.row(i) - Y.row(j)).squaredNorm() / 2 / (m_l * m_l) );
                     if (i == j){
                         // add noise cholesky noise to diagonal elements to ensure non-singular
-                        m_Cov(i, j) += 1e-6;
+                        m_Cov(i, j) += 1e-8;
                     }
                 }
             }
         } else{
             // kernel construction algorithm for symmetric matrices
             double cov_value;
-            m_Cov = Eigen::MatrixXd::Zero(X.cols(), Y.cols());
-            for (int i = 0; i < X.cols(); i++){
-                for (int j = i; j < Y.cols(); j++){
-                    cov_value = (m_sf * m_sf) * exp( -(X.col(i) - Y.col(j)).squaredNorm() / 2 / (m_l * m_l) );
+            m_Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = i; j < Y.rows(); j++){
+                    cov_value = (m_sf * m_sf) * exp( -(X.row(i) - Y.row(j)).squaredNorm() / 2 / (m_l * m_l) );
                     m_Cov(i, j) = cov_value;
                     m_Cov(j, i) = cov_value;
                     if (i == j){
                         // add noise cholesky noise to diagonal elements to ensure non-singular
-                        m_Cov(i, j) += 1e-6;
+                        m_Cov(i, j) += 1e-8;
                     }
                 }
             }
@@ -132,7 +134,8 @@ void GaussianProcess::generate_random_points(int num_sample, int x_size, float m
     }
 }
 
-void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save, std::string file_path){
+void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, 
+                              Eigen::VectorXd& y_test, Eigen::VectorXd& y_train, char save){
 
     std::cout << "\n--- GAUSSIAN PROCESS ---" << std::endl;
     std::cout << "x_test: \n" << x_test << std::endl;
@@ -140,9 +143,9 @@ void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train,
     std::cout << "y_train: \n" << y_train.transpose() << std::endl;
 
     // compute required covariance matrices
-    Eigen::MatrixXd Ky(x_train.rows(), x_train.cols());         // ∈ ℝ (m x m)
-    Eigen::MatrixXd Ks(x_train.rows(), x_test.cols());          // ∈ ℝ (m x l)
-    Eigen::MatrixXd Kss(x_test.rows(), x_test.cols());          // ∈ ℝ (l x l))
+    Eigen::MatrixXd Ky(x_train.rows(), x_train.rows());         // ∈ ℝ (m x m)
+    Eigen::MatrixXd Ks(x_train.rows(), x_test.rows());          // ∈ ℝ (m x l)
+    Eigen::MatrixXd Kss(x_test.rows(), x_test.rows());          // ∈ ℝ (l x l))
 
     kernelGP(x_train, x_train);
     Ky = m_Cov;
@@ -173,7 +176,9 @@ void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train,
     // display results
     std::cout << "\nx_test: \n" << x_test << std::endl;
     std::cout << "\nMu: \n" << m_mu.transpose() << std::endl;
+    std::cout << "\nMu.shape: " << m_mu.rows() << ", " << m_mu.cols() << std::endl;
     std::cout << "\nuncertainty = \n" << uncertainty.transpose() << std::endl;
+    std::cout << "\nuncertainty.shape: " << uncertainty.rows() << ", " << uncertainty.cols() << std::endl;
     std::cout << "\nMu - uncertainty = \n" << (m_mu - uncertainty).transpose() << std::endl;
     std::cout << "\nMu + uncertainty = \n" << (m_mu + uncertainty).transpose() << std::endl;
 
@@ -184,18 +189,14 @@ void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train,
         std::ofstream save_mu;
         std::ofstream save_uncertainty;
 
-        save_x_test.open(file_path); 
-        save_mu.open(file_path);
-        save_uncertainty.open(file_path);
-
-        // save_x_test.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_x_test.dat");
-        // save_Mu.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_Mu.dat");
-        // save_uncertainty.open("/Users/brianhowell/Desktop/Berkeley/MSOL/BayesianOptimisationCPP/plots/data/conditionedGp/save_uncertainty.dat");
+        save_x_test.open(file_path + "/save_x_test.dat"); 
+        save_mu.open(file_path + "/save_Mu.dat");
+        save_uncertainty.open(file_path + "/save_uncertainty.dat");
 
         for (unsigned int i = 0; i < x_test.rows(); ++i){
             for (unsigned int j = 0; j < x_test.cols(); ++j){
                 if (j < x_test.cols() - 1){
-                    save_x_test << x_test(i, j) << " ";
+                    save_x_test << x_test(i, j) << ",";
                 } else{
                     save_x_test << x_test(i, j);
                 }
@@ -203,20 +204,23 @@ void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train,
             save_x_test << std::endl;
         }
 
-        for (short i = 0; i < m_mu.rows(); ++i){
-            for(short j = 0; j < m_mu.cols(); ++j){
-                if (i < m_mu.cols() - 1){
-                    save_mu << m_mu(i, j) << " ";
-                    save_uncertainty << uncertainty(i) << " ";
-                } else{
-                    save_mu << m_mu(i, j);
-                    save_uncertainty << uncertainty(i);
-                }
+        // save mu and uncertainty
+        for (int i = 0; i < m_mu.rows(); ++i){
+            if (i < m_mu.rows()){
+                save_mu << m_mu(i, 0) << ", "; 
+                save_uncertainty << uncertainty(i) << ", ";
+            }
+            else{
+                save_mu << m_mu(i, 0);
+                save_uncertainty << uncertainty(i);
             }
         }
+
         save_x_test.close();
         save_mu.close();
         save_uncertainty.close();
+        
+        y_test = m_mu;
     }
 
     auto end = sc.now();

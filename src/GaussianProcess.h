@@ -23,6 +23,7 @@ private:
     float m_l;                                            // length scale parameter
     float m_sf;                                           // signal noise variance
     std::string m_kernel;                                 // covariance kernel specification
+    std::string file_path;                                // file path to store data
 
     // initialize covariance matrices
     //      - l --> number of samples
@@ -47,7 +48,7 @@ public:
     GaussianProcess();
 
     /* overload constructor */
-    GaussianProcess(float, float, std::string);
+    GaussianProcess(float L, float SF, std::string KERNEL, std::string FILE_PATH);
 
     /* destructor function */
     ~GaussianProcess();
@@ -66,7 +67,7 @@ public:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
      *
-     *      - l: number of sample points
+     *      - l: number of test points
      *      - m: number of data points
      *      - n: number of variables
      *
@@ -91,7 +92,8 @@ public:
 
     void generate_random_points(int num_sample, int x_size, float mean, float stddev, float scale);
 
-    void predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, Eigen::VectorXd& y_train, char save, std::string file_path);
+    void predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, 
+                 Eigen::VectorXd& y_test, Eigen::VectorXd& y_train, char save);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points
