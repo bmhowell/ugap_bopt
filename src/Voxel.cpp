@@ -13,6 +13,7 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     theta0  = temp;                                             // |    K    | initial and ambient temperature
     I0      = UVI;                                              // |  W/m^2  |  UV intensity
     uvt     = UVT;                                              // |    s    | uv exposure time
+    obj     = 1000.;                                            // |   ---   |  objective function
 
     // set file path
     file_path = FILE_PATH;                                      // |   ---   |  file path
@@ -1033,11 +1034,11 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
         }
 
         // set trapezoidal hyper parameter: 1-FEuler, 0-BEuler, 0.5-Trap
-        float psi = 0.5;
-        int count = 0;
+        float psi    = 0.5;
+        int count    = 0;
         double error = 100;
-        double err_step;
         double depth = 0;
+        double err_step;
 
         // fixed point iteration
         while (error > tol){
@@ -1468,19 +1469,19 @@ void Voxel::AvgConcentrations2File(int counter,
     avg_k_p         /= nodes_resin;
     avg_k_t         /= nodes_resin;
 
-    avg_diff_pdot   /= nodes_resin;
+    avg_diff_pdot      /= nodes_resin;
     avg_diff_pdot_top  /= nodes_top_resin;
     avg_diff_pdot_bot  /= nodes_bot_resin;
     
-    avg_diff_mdot   /= nodes_resin;
+    avg_diff_mdot      /= nodes_resin;
     avg_diff_mdot_top  /= nodes_top_resin;
     avg_diff_mdot_bot  /= nodes_bot_resin;    
 
-    avg_diff_m      /= nodes_resin;
+    avg_diff_m         /= nodes_resin;
     avg_diff_m_top     /= nodes_top_resin;
     avg_diff_m_bot     /= nodes_bot_resin;
 
-    avg_diff_theta  /= N_VOL_NODES;
+    avg_diff_theta     /= N_VOL_NODES;
     avg_diff_theta_top /= N_VOL_NODES;
     avg_diff_theta_bot /= N_VOL_NODES;
 
@@ -1535,10 +1536,11 @@ void Voxel::Concentrations2File(int counter,
     // write to file
     std::string file_name = file_path + "concentrations_t" + std::to_string(counter) + ".vtk";
     print_concentrations.open(file_name);
-    print_concentrations << "# vtk DataFile Version 2.0" << std::endl;
+    
+    print_concentrations << "# vtk DataFile Version 2.0"              << std::endl;
     print_concentrations << "voxel concentration ugap with particles" << std::endl;
-    print_concentrations << "ASCII" << std::endl;
-    print_concentrations << "DATASET RECTILINEAR_GRID" << std::endl;
+    print_concentrations << "ASCII"                                   << std::endl;
+    print_concentrations << "DATASET RECTILINEAR_GRID"                << std::endl;
     print_concentrations << "DIMENSIONS " << nodes << " " <<  nodes << " " << nodes << std::endl;
 
     print_concentrations << "X_COORDINATES " << nodes << " float" << std::endl;
@@ -1894,7 +1896,7 @@ void Voxel::Simulate(int method, int save_voxel){
         // display time
         timer += dt;
         if ((t + 1) % 100 == 0){
-            std::cout << "time: " << timer << " / " << t_final << std::endl;
+            std::cout << "time: "      << timer << " / " << t_final                       << std::endl;
             std::cout << "iteration: " << t + 1 << " / " << N_TIME_STEPS + 1 << std::endl << std::endl;
         }
 
@@ -1922,4 +1924,23 @@ void Voxel::Simulate(int method, int save_voxel){
             file_counter++;
         }
     }
+
+    double average_PI    = 0;
+    double average_PIdot = 0; 
+    double average_Mdot  = 0;  
+    double average_M     = 0;
+
+    for (int i = 0; i < N_VOL_NODES; i++){
+        average_PI   += c_PI[i];
+        average_PIdot += c_PIdot[i];
+        average_Mdot  += c_Mdot[i];
+        average_M    += c_M[i];
+    }
+
+    average_PI   /= N_VOL_NODES;
+    average_PIdot /= N_VOL_NODES;
+    average_Mdot  /= N_VOL_NODES;
+    average_M    /= N_VOL_NODES;
+
+    obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
 }
