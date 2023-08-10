@@ -17,8 +17,6 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
 
     // set file path
     file_path = FILE_PATH;                                      // |   ---   |  file path
-    // file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
-    // file_path = "/home/brian/Documents/berkeley/materials_opt/output/";         // LINUX CENTRAL COMPUTING
 
     interfacial_nodes = 1;                                      // |   ---   |  interfacial thickness parameter
     len_block         = 0.00084;                                // |    m    |  sample length
@@ -211,6 +209,8 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
     double n_particle_nodes = std::round(N_VOL_NODES * solids_loading);
     double particle_distance, node_particle, rand_loc;
     int node;
+    rp = radius_1;
+    vp = solids_loading; 
 
     std::cout << "\n--------- ------- ---------" << std::endl;
     std::cout << "--- GENERATING PARTICLES ---" << std::endl;
@@ -644,609 +644,257 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                         std::vector<double> &theta_next,
                         double I0, double dt, int method){
     double heat_diffuse, heat_rxn, heat_uv;
+    float psi; 
     int node;
 
-    // FORWARD EULER
+     // set trapezoidal hyper parameter: 1-FEuler, 0-BEuler, 0.5-Trap
     if (method == 0){
-        double depth = 0;
+        psi = 1.; 
+    }else if (method == 1){
+        psi = 0.;
+    }else if (method == 2){
+        psi = 0.5;
+    }else{
+        throw std::invalid_argument("ERROR: enter valid method 1-FEuler, 0-BEuler, 0.5-Trap  ---"); 
+    }
+
+    // declare implicit vectors
+    std::vector<double> c_PI_0(N_VOL_NODES),
+                        c_PI_1(N_VOL_NODES),
+                        c_PIdot_0(N_VOL_NODES),
+                        c_PIdot_1(N_VOL_NODES),
+                        c_Mdot_0(N_VOL_NODES),
+                        c_Mdot_1(N_VOL_NODES),
+                        c_M_0(N_VOL_NODES),
+                        c_M_1(N_VOL_NODES),
+                        theta_0(N_VOL_NODES),
+                        theta_1(N_VOL_NODES);
+
+    // initialize implicit vectors
+    for (int node = 0; node < N_VOL_NODES; node++){
+        c_PI_0[node]    = c_PI[node];
+        c_PI_1[node]    = c_PI[node];
+        c_PIdot_0[node] = c_PIdot[node];
+        c_PIdot_1[node] = c_PIdot[node];
+        c_Mdot_0[node]  = c_Mdot[node];
+        c_Mdot_1[node]  = c_Mdot[node];
+        c_M_0[node]     = c_M[node];
+        c_M_1[node]     = c_M[node];
+        theta_0[node]   = theta[node];
+        theta_1[node]   = theta[node];
+    }
+
+    int count    = 0;
+    double error = 100;
+    double depth = 0;
+    double err_step;
+
+    // fixed point iteration
+    while (error > tol){
+
+        // cap iterations
+        if (count > thresh){
+            throw std::invalid_argument("--- SolveSystem (trapezoidal) did not converge ---");
+        }
+
+        err_step = 0;
+
         for (int node = 0; node < N_VOL_NODES; node++){
+
+            // map node to coordinates
             Node2Coord(node, current_coords); 
             int i = current_coords[0]; 
             int j = current_coords[1]; 
-            int k = current_coords[2];
+            int k = current_coords[2]; 
 
             depth = len_block-current_coords[2]*coord_map_const;
 
-            // INTERNAL NODES
-            if (    current_coords[0] != 0 && current_coords[0] != (nodes-1)
-                 && current_coords[1] != 0 && current_coords[1] != (nodes-1)
-                 && current_coords[2] != 0 && current_coords[2] != (nodes-1)){
+            // internal nodes
+            if (   i != 0 && i != (nodes-1)
+                && j != 0 && j != (nodes-1)
+                && k != 0 && k != (nodes-1)){
 
-                // solve equations 1-5
-                c_PI_next[node]    = c_PI[node]    + dt*IRate(c_PI, I0, depth, node); 
-                c_PIdot_next[node] = c_PIdot[node] + dt*PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node); 
-                c_Mdot_next[node]  = c_Mdot[node]  + dt*MdotRate(c_Mdot, c_PIdot, c_M, node); 
-                c_M_next[node]     = c_Mdot[node]  + dt*MRate(c_M, c_Mdot, c_PIdot, node); 
-                theta_next[node]   = theta[node]   + dt*TempRate(theta, c_M, c_Mdot, c_PI, c_PIdot, I0, node);
-                    }
+                // solve equation 1
+                c_PI_1[node] =   c_PI[node] + dt * (  (1-psi) * IRate(c_PI_0, I0, depth, node)
+                                                        +   psi   * IRate(c_PI, I0, depth, node));
+
+                err_step += SquaredDiff(c_PI_0[node], c_PI_1[node]);
+
+
+                // solve equation 2
+                c_PIdot_1[node] = c_PIdot[node] + dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
+                                                            +   psi   * PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node));
+
+                err_step += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                // solve equation 3
+                c_Mdot_1[node] = c_Mdot[node] + dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
+                                                        +   psi   * MdotRate(c_Mdot, c_PIdot, c_M, node));
+
+                err_step += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+
+                // solve equation 4
+                c_M_1[node] = c_M[node] + dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
+                                                    +   psi   * MRate(c_M, c_Mdot, c_PIdot, node));
+
+                err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
+
+                // solve equation 5
+                theta_1[node] = theta[node] + dt* (   (1-psi) * TempRate(theta_0, c_M_0, c_Mdot_0, c_PI_0, c_PIdot, I0, node)
+                                                    +   psi   * TempRate(theta, c_M, c_Mdot, c_PI, c_PIdot, I0, node));
+
+                err_step += SquaredDiff(theta_0[node], theta_1[node]);
+
+            }
+
             // BOUNDARY NODES
-            else if (   current_coords[0] == 0 or current_coords[0] == (nodes-1)
-                     or current_coords[1] == 0 or current_coords[1] == (nodes-1)
-                     or current_coords[2] == 0 or current_coords[2] == (nodes-1)){
+            else if (      i == 0 || i == (nodes-1)
+                        || j == 0 || j == (nodes-1)
+                        || k == 0 || k == (nodes-1)){
+
+                // solve non-spatially dependent equations: equation 1
+                c_PI_1[node] = c_PI[node]
+                                + dt*(  (1-psi) * IRate(c_PI_0, I0, depth, node)
+                                        +   psi   * IRate(c_PI, I0, depth, node));
+                err_step +=   SquaredDiff(c_PI_0[node], c_PI_1[node]);
                 
-
-                // solve non-spatially dependent equations
-                c_PI_next[node] = c_PI[node] + dt*IRate(c_PI, I0, depth, node); 
-
                 // check material type is interfacial, skip spatial dependencies for reactions
                 if (material_type[node] == 2){
-                    c_PIdot_next[node] = c_PIdot[node] + dt*PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node); 
-                    c_Mdot_next[node]  = c_Mdot[node] + dt*MdotRate(c_Mdot, c_PIdot, c_M, node); 
-                    c_M_next[node]     = c_Mdot[node] + dt*MRate(c_M, c_Mdot, c_PIdot, node); 
+                    // solve equation 2
+                    c_PIdot_1[node] = c_PIdot[node] + dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
+                                                            +   psi   * PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node));
+                    err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                    // solve equation 3
+                    c_Mdot_1[node] = c_Mdot[node] + dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
+                                                            +   psi   * MdotRate(c_Mdot, c_PIdot, c_M, node));
+                    err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+
+                    // solve equation 4
+                    c_M_1[node] = c_M[node] + dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
+                                                    +   psi   * MRate(c_M, c_Mdot, c_PIdot, node));
+                    err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
+
                 }
 
                 // ENFORCE NEUMANN BOUNDARY CONDITIONS
-
                 // bottom face
+                double pre_1 = 4 / 3, pre_2 = 1 / 3; 
                 if (i == 0){
+                    // if material is UGAP resin
                     if (material_type[node] == 1){
-                        // ugap resin
-                        c_PIdot[node] = c_PIdot[node+N_PLANE_NODES]; 
-                        c_Mdot[node]  = c_Mdot[node+N_PLANE_NODES]; 
-                        c_M[node]     = c_M[node+N_PLANE_NODES];  
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node+N_PLANE_NODES] - pre_2 * c_PIdot_1[node+N_PLANE_NODES+N_PLANE_NODES]; 
+                        err_step       += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node+N_PLANE_NODES] - pre_2 * c_Mdot_1[node+N_PLANE_NODES+N_PLANE_NODES]; // second order approximation
+                        err_step      += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        
+                        c_M_1[node] = pre_1 * c_M_1[node+N_PLANE_NODES] - pre_2 * c_M_1[node+N_PLANE_NODES+N_PLANE_NODES]; // second order approximation
+                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
-
                 // top face
                 else if (i == (nodes-1)){
-                    // ugap resin
                     if (material_type[node] == 1){
-                        c_PIdot[node] = c_PIdot[node-N_PLANE_NODES]; 
-                        c_Mdot[node]  = c_Mdot[node-N_PLANE_NODES];
-                        c_M[node]     = c_M[node-N_PLANE_NODES]; 
-                        }
-                } 
-                
-                // wall 1: front wall 
-                else if (j == 0){
-                    // ugap resin
-                    if (material_type[node] == 1){
-                        c_PIdot[node] = c_PIdot[node+nodes]; 
-                        c_Mdot[node]  = c_Mdot[node+nodes]; 
-                        c_M[node]     = c_M[node+nodes];    
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node-N_PLANE_NODES] - pre_2 * c_PIdot_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
+                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node-N_PLANE_NODES] - pre_2 * c_Mdot_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
+                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+
+                        c_M_1[node] = pre_1 * c_M_1[node-N_PLANE_NODES] - pre_2 * c_M_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
+                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
-                
+
+                // wall 1: front wall
+                else if (j == 0){
+                    if (material_type[node] == 1){
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node+nodes] - pre_2 * c_PIdot_1[node+nodes+nodes]; 
+                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node+nodes] - pre_2 * c_Mdot_1[node+nodes+nodes]; 
+                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+
+                        c_M_1[node] = pre_1 * c_M_1[node+nodes] - pre_2 * c_M_1[node+nodes+nodes]; 
+                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                    }
+                }
+
                 // wall 3: back wall
                 else if (j == (nodes-1)){
-                    // ugap resin 
                     if (material_type[node] == 1){
-                        c_PIdot[node] = c_PIdot[node-nodes];
-                        c_Mdot[node]  = c_Mdot[node-nodes]; 
-                        c_M[node]     = c_M[node-nodes];
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node-nodes] - pre_2 * c_PIdot_1[node-nodes-nodes];
+                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node-nodes] - pre_2 * c_Mdot_1[node-nodes-nodes];
+                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+
+                        c_M_1[node] = pre_1 * c_M_1[node-nodes] - pre_2 * c_M_1[node-nodes-nodes]; 
+                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
                 // wall 2: left wall
                 else if (k == 0){
                     if (material_type[node] == 1){
-                        // ugap resin
-                        c_PIdot[node] = c_PIdot[node+1]; 
-                        c_Mdot[node]  = c_Mdot[node+1]; 
-                        c_M[node]     = c_M[node+1]; 
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node+1] - pre_2 * c_PIdot_1[node+1+1]; 
+                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node+1] - pre_2 * c_Mdot_1[node+1+1];
+                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+
+                        c_M_1[node] = pre_1 * c_M_1[node+1] - pre_2 * c_M_1[node+1+1];
+                        err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
                 // wall 4: right wall
                 else if (k == (nodes-1)){
                     if (material_type[node] == 1){
-                        // ugap resin
-                        c_PIdot[node] = c_PIdot[node-1]; 
-                        c_Mdot[node]  = c_Mdot[node-1]; 
-                        c_M[node]     = c_M[node-1]; 
-                    }
-                }else{
-                    throw std::invalid_argument("--- forward euler: boundary condition error ---");
-                }
-            }else{
-                std::cout << "\n--- error location ---" << std::endl;
-                std::cout << "i : " << i << " | j: " << j << " | k: " << k << std::endl; 
-                throw std::invalid_argument("--- forward euler: node error ---");
-            }
-        }
-    }
-
-    // backward euler
-    else if (method == 1){
-
-        std::vector<double> c_PI_0(N_VOL_NODES),
-                            c_PI_1(N_VOL_NODES),
-                            c_PIdot_0(N_VOL_NODES),
-                            c_PIdot_1(N_VOL_NODES),
-                            c_Mdot_0(N_VOL_NODES),
-                            c_Mdot_1(N_VOL_NODES),
-                            c_M_0(N_VOL_NODES),
-                            c_M_1(N_VOL_NODES),
-                            theta_0(N_VOL_NODES),
-                            theta_1(N_VOL_NODES);
-
-        for (int node = 0; node < N_VOL_NODES; node++){
-            c_PI_0[node]    = c_PI[node];
-            c_PI_1[node]    = c_PI[node];
-            c_PIdot_0[node] = c_PIdot[node];
-            c_PIdot_1[node] = c_PIdot[node];
-            c_Mdot_0[node]  = c_Mdot[node];
-            c_Mdot_1[node]  = c_Mdot[node];
-            c_M_0[node]     = c_M[node];
-            c_M_1[node]     = c_M[node];
-            theta_0[node]   = theta[node];
-            theta_1[node]   = theta[node];
-        }
-
-        int count = 0;
-        double error = 100;
-        double depth = 0; 
-
-        // fixed point iteration
-
-        while (error > tol){
-
-            // cap iterations
-            if (count > thresh){
-                std::cout << "error: " << error << std::endl;
-                throw std::invalid_argument("--- SolveSystem (backward euler) did not converge ---");
-            }
-
-            double err_step = 0;
-            for (int node = 0; node < N_VOL_NODES; node++){
-
-                // get node coordinates
-                Node2Coord(node, current_coords);
-                int i = current_coords[0]; 
-                int j = current_coords[1]; 
-                int k = current_coords[2];
-
-                // internal nodes
-                if (    i != 0 && i != (nodes-1)
-                     && j != 0 && j != (nodes-1)
-                     && k != 0 && k != (nodes-1)){
-
-                    // solve equation 1
-                    c_PI_1[node] = c_PI[node] + dt* IRate(c_PI_0,
-                                                            I0,
-                                                            len_block-current_coords[2]*coord_map_const,
-                                                            node);
-
-                    err_step +=   SquaredDiff(c_PI_0[node], c_PI_1[node]);
-
-                    // solve equation 2
-                    c_PIdot_1[node] = c_PIdot[node] + dt* PIdotRate(c_PIdot_0,
-                                                                    c_PI_0,
-                                                                    c_M_0,
-                                                                    I0,
-                                                                    len_block-current_coords[2]*coord_map_const,
-                                                                    node);
-                    err_step += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                    // solve equation 3
-                    c_Mdot_1[node] = c_Mdot[node] + dt* MdotRate(c_Mdot_0,
-                                                                    c_PIdot_0,
-                                                                    c_M_0, 
-                                                                    node);
-
-                    err_step += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
-
-
-                    // solve equation 4
-                    c_M_1[node] = c_M[node] + dt* MRate(c_M_0,
-                                                        c_Mdot_0,
-                                                        c_PIdot_0,
-                                                        node);
-                    err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
-
-                    // solve equation 5
-                    theta_1[node] = theta[node] + dt*TempRate(theta_0,
-                                                                c_M_0,
-                                                                c_Mdot_0,
-                                                                c_PI_0,
-                                                                c_PIdot, 
-                                                                I0, node);
-                    err_step += SquaredDiff(theta_0[node], theta_1[node]);
-                }
-                // BOUNDARY NODES
-                else if (   i == 0 || i == (nodes-1)
-                         || j == 0 || j == (nodes-1)
-                         || k == 0 || k == (nodes-1)){
-
-                    // solve non-spatially dependent equations: equation 1
-                    c_PI_1[node] = c_PI[node] + dt*IRate(c_PI_0,
-                                                            I0,
-                                                            len_block-current_coords[2]*coord_map_const,
-                                                            node);
-                    err_step += SquaredDiff(c_PI_0[node], c_PI_1[node]);
-
-                    // check material type is interfacial, skip spatial dependencies for reactions
-                    if (material_type[node] == 2){
-                        // solve equation 2
-                        c_PIdot_1[node] = c_PIdot[node] + dt*PIdotRate(c_PIdot_0,
-                                                                c_PI_0,
-                                                                c_M_0,
-                                                                I0,
-                                                                len_block-current_coords[2]*coord_map_const,
-                                                                node);
-                        err_step += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                        // solve equation 3
-                        c_Mdot_1[node] = c_Mdot[node] + dt*MdotRate(c_Mdot_0,
-                                                                    c_PIdot_0,
-                                                                    c_M_0,
-                                                                    node);
-                        err_step += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
-
-                        // solve equation 4
-                        c_M_1[node] = c_M[node] + dt*MRate(c_M_0, c_Mdot_0, c_PIdot_0, node);
-                        err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
-
-                    }
-
-                    // ENFORCE NEUMANN BOUNDARY CONDITIONS
-                    // bottom face
-                    if (i == 0){
-                        if (material_type[node] == 1){
-                            // ugap resin
-                            
-                            c_PIdot_1[node] = c_PIdot_0[node+N_PLANE_NODES]; // first order approximation
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = c_Mdot_0[node+N_PLANE_NODES];
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = c_M_0[node+N_PLANE_NODES];
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // top face
-                    else if (i == (nodes-1)){
-                        // ugap resin
-                        if (material_type[node] == 1){
-                            c_PIdot_1[node] =  c_PIdot_0[node-N_PLANE_NODES];   // first order approximation
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = c_Mdot_0[node-N_PLANE_NODES]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = c_M_0[node-N_PLANE_NODES];
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 1: front wall
-                    else if (j == 0){
-                        if (material_type[node] == 1){
-                            c_PIdot_1[node] =  c_PIdot_0[node+nodes]; // first order approximation
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = c_Mdot_0[node+nodes]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
-
-                            c_M_1[node] = c_M_0[node+nodes];
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 3: back wall
-                    else if (j == (nodes-1)){
-                        if (material_type[node] == 1){
-
-                            c_PIdot_1[node] =  c_PIdot_0[node-nodes]; 
-                            err_step       +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node]  = c_Mdot_0[node-nodes]; 
-                            err_step       +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node]     = c_M_0[node-nodes];
-                            err_step       +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 2: left wall
-                    else if (k == 0){
-                        if (material_type[node] == 1){
-                            c_PIdot_1[node] =  c_PIdot_0[node+1]; 
-                            err_step       +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node]  = c_Mdot_0[node+1]; 
-                            err_step       +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node]     = c_M_0[node+1];
-                            err_step       += SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 4: right wall
-                    else if (k == (nodes-1)){
-                        if (material_type[node] == 1){
-                            c_PIdot_1[node] =  c_PIdot_0[node-1]; 
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = c_Mdot_0[node-1]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = c_M_0[node-1];
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }else{
-                        throw std::invalid_argument("--- Backward Euler: boundary condition error ---");
-                    }
-                }else{
-                    // something is wrong..
-                    throw std::invalid_argument("--- FIXED POINT NODE BOUNDARY ISSUE ---");
-                }
-            }
-
-            error = sqrt(err_step);
-            count++;
-
-            if (error > tol){
-                c_PI_0 = c_PI_1;
-                c_PIdot_0 = c_PIdot_1;
-                c_Mdot_0 = c_Mdot_1;
-                c_M_0 = c_M_1;
-                theta_0 = theta_1;
-            }else{
-                c_PI_next = c_PI_1;
-                c_PIdot_next = c_PIdot_1;
-                c_Mdot_next = c_Mdot_1;
-                c_M_next = c_M_1;
-                theta_next = theta_1;
-            }
-        }
-    }
-
-    // trapezoidal
-    else if (method == 2){
-        
-        // declare implicit vectors
-        std::vector<double> c_PI_0(N_VOL_NODES),
-                            c_PI_1(N_VOL_NODES),
-                            c_PIdot_0(N_VOL_NODES),
-                            c_PIdot_1(N_VOL_NODES),
-                            c_Mdot_0(N_VOL_NODES),
-                            c_Mdot_1(N_VOL_NODES),
-                            c_M_0(N_VOL_NODES),
-                            c_M_1(N_VOL_NODES),
-                            theta_0(N_VOL_NODES),
-                            theta_1(N_VOL_NODES);
-
-        // initialize implicit vectors
-        for (int node = 0; node < N_VOL_NODES; node++){
-            c_PI_0[node]    = c_PI[node];
-            c_PI_1[node]    = c_PI[node];
-            c_PIdot_0[node] = c_PIdot[node];
-            c_PIdot_1[node] = c_PIdot[node];
-            c_Mdot_0[node]  = c_Mdot[node];
-            c_Mdot_1[node]  = c_Mdot[node];
-            c_M_0[node]     = c_M[node];
-            c_M_1[node]     = c_M[node];
-            theta_0[node]   = theta[node];
-            theta_1[node]   = theta[node];
-        }
-
-        // set trapezoidal hyper parameter: 1-FEuler, 0-BEuler, 0.5-Trap
-        float psi    = 0.5;
-        int count    = 0;
-        double error = 100;
-        double depth = 0;
-        double err_step;
-
-        // fixed point iteration
-        while (error > tol){
-
-            // cap iterations
-            if (count > thresh){
-                throw std::invalid_argument("--- SolveSystem (trapezoidal) did not converge ---");
-            }
-
-            err_step = 0;
-
-            for (int node = 0; node < N_VOL_NODES; node++){
-
-                // map node to coordinates
-                Node2Coord(node, current_coords); 
-                int i = current_coords[0]; 
-                int j = current_coords[1]; 
-                int k = current_coords[2]; 
-
-                depth = len_block-current_coords[2]*coord_map_const;
-
-                // internal nodes
-                if (   i != 0 && i != (nodes-1)
-                    && j != 0 && j != (nodes-1)
-                    && k != 0 && k != (nodes-1)){
-
-                    // solve equation 1
-                    c_PI_1[node] =   c_PI[node] + dt * (  (1-psi) * IRate(c_PI_0, I0, depth, node)
-                                                            +   psi   * IRate(c_PI, I0, depth, node));
-
-                    err_step += SquaredDiff(c_PI_0[node], c_PI_1[node]);
-
-
-                    // solve equation 2
-                    c_PIdot_1[node] = c_PIdot[node] + dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
-                                                                +   psi   * PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node));
-
-                    err_step += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                    // solve equation 3
-                    c_Mdot_1[node] = c_Mdot[node] + dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
-                                                            +   psi   * MdotRate(c_Mdot, c_PIdot, c_M, node));
-
-                    err_step += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
-
-                    // solve equation 4
-                    c_M_1[node] = c_M[node] + dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
-                                                        +   psi   * MRate(c_M, c_Mdot, c_PIdot, node));
-
-                    err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
-
-                    // solve equation 5
-                    theta_1[node] = theta[node] + dt* (   (1-psi) * TempRate(theta_0, c_M_0, c_Mdot_0, c_PI_0, c_PIdot, I0, node)
-                                                        +   psi   * TempRate(theta, c_M, c_Mdot, c_PI, c_PIdot, I0, node));
-
-                    err_step += SquaredDiff(theta_0[node], theta_1[node]);
-
-                }
-
-                // BOUNDARY NODES
-                else if (   i == 0 || i == (nodes-1)
-                         || j == 0 || j == (nodes-1)
-                         || k == 0 || k == (nodes-1)){
-
-                    // solve non-spatially dependent equations: equation 1
-                    c_PI_1[node] = c_PI[node]
-                                    + dt*(  (1-psi) * IRate(c_PI_0, I0, depth, node)
-                                            +   psi   * IRate(c_PI, I0, depth, node));
-                    err_step +=   SquaredDiff(c_PI_0[node], c_PI_1[node]);
-                    
-                    // check material type is interfacial, skip spatial dependencies for reactions
-                    if (material_type[node] == 2){
-                        // solve equation 2
-                        c_PIdot_1[node] = c_PIdot[node] + dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
-                                                                +   psi   * PIdotRate(c_PIdot, c_PI, c_M, I0, depth, node));
+                        // apply neumann bc using a second order approximation
+                        c_PIdot_1[node] = pre_1 * c_PIdot_1[node-1] - pre_2 * c_PIdot_1[node-1-1]; 
                         err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
-                        // solve equation 3
-                        c_Mdot_1[node] = c_Mdot[node] + dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
-                                                                +   psi   * MdotRate(c_Mdot, c_PIdot, c_M, node));
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+                        c_Mdot_1[node] = pre_1 * c_Mdot_1[node-1] - pre_2 * c_Mdot_1[node-1-1]; 
+                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
 
-                        // solve equation 4
-                        c_M_1[node] = c_M[node] + dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
-                                                        +   psi   * MRate(c_M, c_Mdot, c_PIdot, node));
-                        err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
-
+                        c_M_1[node] = pre_1 * c_M_1[node-1] - pre_2 * c_M_1[node-1-1];
+                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
                     }
-
-                    // ENFORCE NEUMANN BOUNDARY CONDITIONS
-                    // bottom face
-                    double pre_1 = 4 / 3, pre_2 = 1 / 3; 
-                    if (i == 0){
-                        // if material is UGAP resin
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node+N_PLANE_NODES] - pre_2 * c_PIdot_1[node+N_PLANE_NODES+N_PLANE_NODES]; 
-                            err_step       += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node+N_PLANE_NODES] - pre_2 * c_Mdot_1[node+N_PLANE_NODES+N_PLANE_NODES]; // second order approximation
-                            err_step      += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-                            
-                            c_M_1[node] = pre_1 * c_M_1[node+N_PLANE_NODES] - pre_2 * c_M_1[node+N_PLANE_NODES+N_PLANE_NODES]; // second order approximation
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-                    // top face
-                    else if (i == (nodes-1)){
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node-N_PLANE_NODES] - pre_2 * c_PIdot_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node-N_PLANE_NODES] - pre_2 * c_Mdot_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = pre_1 * c_M_1[node-N_PLANE_NODES] - pre_2 * c_M_1[node-N_PLANE_NODES-N_PLANE_NODES]; 
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 1: front wall
-                    else if (j == 0){
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node+nodes] - pre_2 * c_PIdot_1[node+nodes+nodes]; 
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node+nodes] - pre_2 * c_Mdot_1[node+nodes+nodes]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
-
-                            c_M_1[node] = pre_1 * c_M_1[node+nodes] - pre_2 * c_M_1[node+nodes+nodes]; 
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 3: back wall
-                    else if (j == (nodes-1)){
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node-nodes] - pre_2 * c_PIdot_1[node-nodes-nodes];
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node-nodes] - pre_2 * c_Mdot_1[node-nodes-nodes];
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = pre_1 * c_M_1[node-nodes] - pre_2 * c_M_1[node-nodes-nodes]; 
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 2: left wall
-                    else if (k == 0){
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node+1] - pre_2 * c_PIdot_1[node+1+1]; 
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node+1] - pre_2 * c_Mdot_1[node+1+1];
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = pre_1 * c_M_1[node+1] - pre_2 * c_M_1[node+1+1];
-                            err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    // wall 4: right wall
-                    else if (k == (nodes-1)){
-                        if (material_type[node] == 1){
-                            // apply neumann bc using a second order approximation
-                            c_PIdot_1[node] = pre_1 * c_PIdot_1[node-1] - pre_2 * c_PIdot_1[node-1-1]; 
-                            err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
-
-                            c_Mdot_1[node] = pre_1 * c_Mdot_1[node-1] - pre_2 * c_Mdot_1[node-1-1]; 
-                            err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
-
-                            c_M_1[node] = pre_1 * c_M_1[node-1] - pre_2 * c_M_1[node-1-1];
-                            err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
-                        }
-                    }
-
-                    else{
-                        throw std::invalid_argument("--- trapezoidal: boundary condition error ---");
-                    }
-                }else {
-                    // something is wrong..
-                    throw std::invalid_argument("--- FIXED POINT BOUNDARY NODE ISSUE: trapezoidal ---");
                 }
+
+                else{
+                    throw std::invalid_argument("--- trapezoidal: boundary condition error ---");
+                }
+            }else {
+                // something is wrong..
+                throw std::invalid_argument("--- FIXED POINT BOUNDARY NODE ISSUE: trapezoidal ---");
             }
+        }
 
 
-            error = sqrt(err_step);
-            count++;
+        error = sqrt(err_step);
+        count++;
 
-            if (error > tol){
-                c_PI_0 = c_PI_1;
-                c_PIdot_0 = c_PIdot_1;
-                c_Mdot_0 = c_Mdot_1;
-                c_M_0 = c_M_1;
-                theta_0 = theta_1;
-            }
-            else{
-                c_PI_next = c_PI_1;
-                c_PIdot_next = c_PIdot_1;
-                c_Mdot_next = c_Mdot_1;
-                c_M_next = c_M_1;
-                theta_next = theta_1;
-            }
+        if (error > tol){
+            c_PI_0 = c_PI_1;
+            c_PIdot_0 = c_PIdot_1;
+            c_Mdot_0 = c_Mdot_1;
+            c_M_0 = c_M_1;
+            theta_0 = theta_1;
+        }
+        else{
+            c_PI_next = c_PI_1;
+            c_PIdot_next = c_PIdot_1;
+            c_Mdot_next = c_Mdot_1;
+            c_M_next = c_M_1;
+            theta_next = theta_1;
         }
     }
 }
@@ -1877,15 +1525,21 @@ void Voxel::Simulate(int method, int save_voxel){
     // begin time stepping
     timer = 0.;
     int file_counter = 1;
+    double uv_light = I0;
     for (int t = 0; t < N_TIME_STEPS; t++) {
 
         total_time[t] = timer;
+        if (timer <= uvt){
+            uv_light = I0; 
+        }else{
+            uv_light = 0.;
+        }
 
         // compute energy intensity and reaction rate constants
         ComputeRxnRateConstants();
 
         // solve system of equations
-        SolveSystem(c_PI_next, c_PIdot_next, c_Mdot_next, c_M_next, theta_next, I0, dt, method);
+        SolveSystem(c_PI_next, c_PIdot_next, c_Mdot_next, c_M_next, theta_next, uv_light, dt, method);
 
         c_PI    = c_PI_next;
         c_PIdot = c_PIdot_next;
@@ -1942,5 +1596,14 @@ void Voxel::Simulate(int method, int save_voxel){
     average_Mdot  /= N_VOL_NODES;
     average_M    /= N_VOL_NODES;
 
+    // compute weighted multi objective function
     obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
+    
+    std::cout << "--- SIMULATION COMPLETE ---" << std::endl;
+    std::cout << "obj = " << obj    << std::endl;
+    std::cout << "temp: " << theta0 << std::endl; 
+    std::cout << "uvt: " << uvt     << std::endl; 
+    std::cout << "I0: " << I0       << std::endl;
+    std::cout << "rp: " << rp       << std::endl;
+    std::cout << "vp: " << vp       << std::endl;
 }

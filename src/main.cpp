@@ -100,7 +100,8 @@ int main(int argc, char** argv) {
     // //     ndata++; 
     // // }
 
-    
+    // // store data
+    // store_tot_data(bopti, ndata0, file_path);
     
     // delete y_train;
     // delete x_train;
