@@ -173,14 +173,14 @@ void GaussianProcess::predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train,
         uncertainty(i) = 2 * sqrt(m_Cov(i, i));
     }
 
-    // display results
-    std::cout << "\nx_test: \n" << x_test << std::endl;
-    std::cout << "\nMu: \n" << m_mu.transpose() << std::endl;
-    std::cout << "\nMu.shape: " << m_mu.rows() << ", " << m_mu.cols() << std::endl;
-    std::cout << "\nuncertainty = \n" << uncertainty.transpose() << std::endl;
-    std::cout << "\nuncertainty.shape: " << uncertainty.rows() << ", " << uncertainty.cols() << std::endl;
-    std::cout << "\nMu - uncertainty = \n" << (m_mu - uncertainty).transpose() << std::endl;
-    std::cout << "\nMu + uncertainty = \n" << (m_mu + uncertainty).transpose() << std::endl;
+    // // display results
+    // std::cout << "\nx_test: \n" << x_test << std::endl;
+    // std::cout << "\nMu: \n" << m_mu.transpose() << std::endl;
+    // std::cout << "\nMu.shape: " << m_mu.rows() << ", " << m_mu.cols() << std::endl;
+    // std::cout << "\nuncertainty = \n" << uncertainty.transpose() << std::endl;
+    // std::cout << "\nuncertainty.shape: " << uncertainty.rows() << ", " << uncertainty.cols() << std::endl;
+    // std::cout << "\nMu - uncertainty = \n" << (m_mu - uncertainty).transpose() << std::endl;
+    // std::cout << "\nMu + uncertainty = \n" << (m_mu + uncertainty).transpose() << std::endl;
 
     if (save == 'y'){
         std::cout << "--- saving prediction results --- " << std::endl;

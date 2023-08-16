@@ -1,5 +1,6 @@
-#ifndef __CS267_COMMON_H__
-#define __CS267_COMMON_H__
+#ifndef __COMMON_H__
+#define __COMMON_H__
+#pragma once
 
 // Program Constants
 #define TFINAL   30.0
@@ -78,5 +79,6 @@ typedef struct sim{
           bootstrap(bootstrap) {
     }
 } sim;
+
 
 #endif

@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 14)
 add_executable(opt_ugap
                main.cpp
                common.h
+               helper_functions.cpp
+               helper_functions.h
                GaussianProcess.cpp
                GaussianProcess.h
                Voxel.cpp
