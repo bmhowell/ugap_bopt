@@ -62,35 +62,36 @@ void bootstrap(sim &sim_settings, constraints &c, std::vector<bopt> *bopti, int 
         b.uvt  = (c.max_uvt  - c.min_uvt)  * distribution(gen) +  c.min_uvt;
 
         // peform simulation with randomly generatored values
-        b.obj = gen_data(TFINAL, DT, NODE, id, b, sim_settings, file_path);
+        b.obj = gen_data(sim_settings.tfinal, sim_settings.dt, sim_settings.node, id, b, sim_settings, file_path);
         std::cout << "b.obj: " << b.obj << std::endl;
         std::cout << std::endl; 
         // write individual data to file (prevent accidental loss of data if stopped early)
-        write_to_file(b, id, file_path); 
+        write_to_file(b, sim_settings, id, file_path); 
 
         bopti->push_back(b); 
     }
 }
 
-void write_to_file(bopt& b, int id, std::string file_path){
+void write_to_file(bopt& b, sim& sim_set, int id, std::string file_path){
     std::ofstream myfile;
     myfile.open(file_path + "/sim_" + std::to_string(id) + ".dat");
-    myfile << "temp,rp,vp,uvi,uvt,obj" << std::endl;
-    myfile << b.temp << "," << b.rp << "," << b.vp << "," << b.uvi << "," << b.uvt << "," << b.obj << std::endl;
+    myfile << "temp,rp,vp,uvi,uvt,obj,tn" << std::endl;
+    myfile << b.temp << "," << b.rp << "," << b.vp << "," << b.uvi << "," << b.uvt << "," << b.obj << "," << sim_set.time_stepping << std::endl;
     myfile.close();
 }
 
-void store_tot_data(std::vector<bopt> *bopti, int num_sims, std::string file_path){
+void store_tot_data(std::vector<bopt> *bopti, sim& sim_set, int num_sims, std::string file_path){
     std::ofstream myfile;
     myfile.open(file_path + "/tot_bopt.dat");
-    myfile << "temp,rp,vp,uvi,uvt,obj" << std::endl;
+    myfile << "temp,rp,vp,uvi,uvt,obj,tn" << std::endl;
     for (int id = 0; id < num_sims; ++id) {
         myfile << (*bopti)[id].temp << "," 
                << (*bopti)[id].rp   << "," 
                << (*bopti)[id].vp   << ","
                << (*bopti)[id].uvi  << "," 
                << (*bopti)[id].uvt  << "," 
-               << (*bopti)[id].obj  << std::endl;
+               << (*bopti)[id].obj  << ","
+               << sim_set.time_stepping << std::endl;
     }
     myfile.close();
 }

@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim sim_settings;
-    // sim_settings.bootstrap = 1;
+    sim_settings.bootstrap = 1;
 
     // set file path
     std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
@@ -43,11 +43,11 @@ int main(int argc, char** argv) {
     if (sim_settings.bootstrap == 0){
         ndata0 = read_data(bopti, file_path);
     }else{
-        ndata0 = 10; 
+        ndata0 = 2; 
         bootstrap(sim_settings, c, bopti, ndata0, file_path);
         
         // store data
-        store_tot_data(bopti, ndata0, file_path);
+        store_tot_data(bopti, sim_settings, ndata0, file_path);
     }
 
 
