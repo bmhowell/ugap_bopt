@@ -37,13 +37,15 @@ private:
     Eigen::VectorXd m_x_points;                           // ∈ ℝ (m x m)
 
     // ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::MatrixXd m_Cov;                                // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l)
-
-    // ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::VectorXd m_mu;                                 // ∈ ℝ (m)
-
+    Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l)
 
 public:
+    // data
+    Eigen::MatrixXd* x_train; 
+    Eigen::VectorXd* y_train;
+    Eigen::MatrixXd* x_test; 
+    Eigen::VectorXd y_test;                               // ∈ ℝ (m)
+
     /* default constructor */
     GaussianProcess();
 
@@ -54,15 +56,7 @@ public:
     ~GaussianProcess();
 
     /* optimization functions */
-    void unconditionedGP();
-    /*
-     *   This function samples from a multivariate distribution with zero mean
-     *   and no data. The purpose of this function is to demonstrate a 1D plot
-     *   of what an unconditioned GP is to look like.
-     *
-     */
-
-    void kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y);
+    void kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y);
     /*  description:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
@@ -92,8 +86,19 @@ public:
 
     void generate_random_points(int num_sample, int x_size, float mean, float stddev, float scale);
 
-    void predict(Eigen::MatrixXd& x_test, Eigen::MatrixXd& x_train, 
-                 Eigen::VectorXd& y_test, Eigen::VectorXd& y_train, char save);
+    /* training */
+    void train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN);
+    /* Model selection
+        automatic bias-variance trade off
+            - model parameters: 
+                - noise parameter: σ^2
+                - length scale: l
+        
+        using a gentic algorithm
+    */
+
+    /* inference */
+    void predict(Eigen::MatrixXd* X_TEST, char save);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points
@@ -124,11 +129,6 @@ public:
      *
      *
      */
-
-
-    /* saving data functions */
-    void saveUnconditionedData(Eigen::VectorXd& X, Eigen::MatrixXd& Y,
-                               Eigen::VectorXd& Mu, Eigen::MatrixXd& Cov);
 
     /* accessor functions */
     std::string get_kernel() const;

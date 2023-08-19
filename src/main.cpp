@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim sim_settings;
-    sim_settings.bootstrap = 1;
+    // sim_settings.bootstrap = 1;
 
     // set file path
     std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
@@ -54,26 +54,34 @@ int main(int argc, char** argv) {
     // convert data to Eigen matrices
     Eigen::MatrixXd* x_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 5)
     Eigen::VectorXd* y_train = new Eigen::VectorXd(ndata0);     // ∈ ℝ^(ndata x 1)
+    
     to_eigen(bopti, x_train, y_train);
 
     // std::cout << "x_train: \n" << *x_train << std::endl;
     // std::cout << "y_train: \n" << *y_train << std::endl;
     
     // set up gaussian process
-    GaussianProcess gp_ugap = GaussianProcess(1.0f, 1.0f, "RBF", file_path); 
+    GaussianProcess model = GaussianProcess(0.75f, 0.1f, "RBF", file_path); 
+    
+    // set up training data for model
+    model.train(x_train, y_train);
 
     // test vector
-    Eigen::VectorXd* y_test = new Eigen::VectorXd(25);     // objective function values
+    int num_test = 25; 
     
     // uniformly random x_test data for GP
-    Eigen::MatrixXd* x_test = new Eigen::MatrixXd(25, 5);  // 5 decision variables | 25 test points
+    Eigen::MatrixXd* x_test = new Eigen::MatrixXd(num_test, 5);         // 5 decision variables | 25 test points
+    Eigen::MatrixXd  sub_mat = (*x_train).block(0, 0, num_test, 5);     // ∈ ℝ^(ndata x 5
     gen_test_points(c, x_test); 
     
     // predict
-    gp_ugap.predict(*x_test, *x_train, *y_test, *y_train, 'y'); 
+    // model.predict(sub_mat, *x_train, *y_test, *y_train, 'y'); 
+    model.predict(x_test, 'y'); 
+    
 
     std::cout << "x_test: \n" << *x_test << std::endl; 
-    std::cout << "y_test: " << *y_test << std::endl; 
+    std::cout << "\ny_test: \n" << model.y_test << std::endl;
+
 
 
     // int num_sims = 10000; 
@@ -103,8 +111,7 @@ int main(int argc, char** argv) {
     
     // delete y_train;
     // delete x_train;
-    // delete x_test;
-    // delete y_test;
+    delete x_test;
     delete bopti;
     
     std::cout << "Hello World!" << std::endl;
