@@ -58,11 +58,7 @@ int main(int argc, char** argv) {
     to_eigen(bopti, x_train, y_train);
     
     // set up gaussian process
-    float l   = 0.75f; 
-    float sf  = 0.01f;
-    double n  = 1e-8;
-    
-    GaussianProcess model = GaussianProcess(l, sf, n, "RBF", file_path); 
+    GaussianProcess model = GaussianProcess("RBF", file_path); 
     
     // set up training data for model
     model.train(x_train, y_train);
@@ -73,15 +69,12 @@ int main(int argc, char** argv) {
     Eigen::MatrixXd  sub_mat = (*x_train).block(0, 0, num_test, 5);     // ∈ ℝ^(ndata x 5
 
     // uniformly random x_test data for GP
-    gen_test_points(c, x_test);  
-
-    // predict
-    // model.predict(sub_mat, *x_train, *y_test, *y_train, 'y'); 
+    // gen_test_points(c, x_test);  
     
-    model.predict(x_test, 'y');
+    // model.predict(x_test, 'y');
     
-    std::cout << "x_test: \n" << *x_test << std::endl; 
-    std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
+    // std::cout << "x_test: \n" << *x_test << std::endl; 
+    // std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
 
 
 

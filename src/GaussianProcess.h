@@ -17,12 +17,6 @@ class GaussianProcess {
 
 private:
     // MEMBER VARIABLES
-
-    // parameters
-    float length;                                         // length scale parameter
-    float sigma;                                          // signal noise variance
-    double noise;                                         // noise parameter
-
     std::string kernel;                                   // covariance kernel specification
     std::string file_path;                                // file path to store data
     
@@ -37,9 +31,9 @@ private:
     Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l) ⊂ conditionGP() | ⊂ unconditionedGP()
     Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict()
 
-    Eigen::VectorXd alpha; 
-
-    double neg_log_likelihood;                            // ∈ ℝ (1)     ⊂ train()
+    // vector and matrix for cholesky decomposition
+    Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict()
+    Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict()
 
     // data
     Eigen::MatrixXd* x_train; 
@@ -47,19 +41,22 @@ private:
     Eigen::MatrixXd* x_test; 
     Eigen::VectorXd  y_test;                              // ∈ ℝ (m)
 
+    // learned parameters
+    double l, sf, sn;
+
 
 public:
     /* default constructor */
     GaussianProcess();
 
     /* overload constructor */
-    GaussianProcess(float L, float SF, double N, std::string KERNEL, std::string FILE_PATH);
+    GaussianProcess(std::string KERNEL, std::string FILE_PATH);
 
     /* destructor function */
     ~GaussianProcess();
 
     /* optimization functions */
-    void kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y);
+    void kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y, double& sigma, double& length);
     /*  description:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
@@ -87,7 +84,7 @@ public:
      *
     */
 
-    void generate_random_points(int num_sample, int x_size, float mean, float stddev, float scale);
+    double compute_neg_log_likelihood(double& length, double& sigma, double& noise);
 
     /* training */
     void train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN);
@@ -138,9 +135,9 @@ public:
     /* accessor functions */
     std::string get_kernel() const;
 
-    float get_lengthScale() const;
+    // float get_lengthScale() const;
 
-    float get_signalNoise() const;
+    // float get_signalNoise() const;
 
     Eigen::MatrixXd& get_Cov();
 
