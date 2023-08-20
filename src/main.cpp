@@ -56,31 +56,32 @@ int main(int argc, char** argv) {
     Eigen::VectorXd* y_train = new Eigen::VectorXd(ndata0);     // ∈ ℝ^(ndata x 1)
     
     to_eigen(bopti, x_train, y_train);
-
-    // std::cout << "x_train: \n" << *x_train << std::endl;
-    // std::cout << "y_train: \n" << *y_train << std::endl;
     
     // set up gaussian process
-    GaussianProcess model = GaussianProcess(0.75f, 0.1f, "RBF", file_path); 
+    float l   = 0.75f; 
+    float sf  = 0.01f;
+    double n  = 1e-8;
+    
+    GaussianProcess model = GaussianProcess(l, sf, n, "RBF", file_path); 
     
     // set up training data for model
     model.train(x_train, y_train);
 
     // test vector
     int num_test = 25; 
-    
-    // uniformly random x_test data for GP
-    Eigen::MatrixXd* x_test = new Eigen::MatrixXd(num_test, 5);         // 5 decision variables | 25 test points
+    Eigen::MatrixXd* x_test  = new Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
     Eigen::MatrixXd  sub_mat = (*x_train).block(0, 0, num_test, 5);     // ∈ ℝ^(ndata x 5
-    gen_test_points(c, x_test); 
-    
+
+    // uniformly random x_test data for GP
+    gen_test_points(c, x_test);  
+
     // predict
     // model.predict(sub_mat, *x_train, *y_test, *y_train, 'y'); 
-    model.predict(x_test, 'y'); 
     
-
+    model.predict(x_test, 'y');
+    
     std::cout << "x_test: \n" << *x_test << std::endl; 
-    std::cout << "\ny_test: \n" << model.y_test << std::endl;
+    std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
 
 
 
@@ -109,9 +110,10 @@ int main(int argc, char** argv) {
     // // store data
     // store_tot_data(bopti, ndata0, file_path);
     
-    // delete y_train;
-    // delete x_train;
-    delete x_test;
+    delete y_train;
+    delete x_train;
+    delete x_test; 
+
     delete bopti;
     
     std::cout << "Hello World!" << std::endl;

@@ -8,7 +8,6 @@
 #define EIGEN_USE_BLAS
 #include <Eigen/Dense>
 
-
 #pragma once
 #ifndef BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
 #define BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
@@ -20,37 +19,41 @@ private:
     // MEMBER VARIABLES
 
     // parameters
-    float m_l;                                            // length scale parameter
-    float m_sf;                                           // signal noise variance
-    std::string m_kernel;                                 // covariance kernel specification
+    float length;                                         // length scale parameter
+    float sigma;                                          // signal noise variance
+    double noise;                                         // noise parameter
+
+    std::string kernel;                                   // covariance kernel specification
     std::string file_path;                                // file path to store data
+    
+    bool trained;                                         // flag to indicate if GP has been trained
 
     // initialize covariance matrices
     //      - l --> number of samples
     //      - m --> number of data points
     //      - n --> number of variables
+    Eigen::MatrixXd m_x_sample_distribution;              // ∈ ℝ (l x m) ⊂ generate_random_points()
+    Eigen::VectorXd m_x_points;                           // ∈ ℝ (m x m) ⊂ unconditionedGP(): -> x_test
+    Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l) ⊂ conditionGP() | ⊂ unconditionedGP()
+    Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict()
 
-    // ⊂ generate_random_points()
-    Eigen::MatrixXd m_x_sample_distribution;              // ∈ ℝ (l x m)
+    Eigen::VectorXd alpha; 
 
-    // ⊂ unconditionedGP(): -> x_test
-    Eigen::VectorXd m_x_points;                           // ∈ ℝ (m x m)
+    double neg_log_likelihood;                            // ∈ ℝ (1)     ⊂ train()
 
-    // ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l)
-
-public:
     // data
     Eigen::MatrixXd* x_train; 
     Eigen::VectorXd* y_train;
     Eigen::MatrixXd* x_test; 
-    Eigen::VectorXd y_test;                               // ∈ ℝ (m)
+    Eigen::VectorXd  y_test;                              // ∈ ℝ (m)
 
+
+public:
     /* default constructor */
     GaussianProcess();
 
     /* overload constructor */
-    GaussianProcess(float L, float SF, std::string KERNEL, std::string FILE_PATH);
+    GaussianProcess(float L, float SF, double N, std::string KERNEL, std::string FILE_PATH);
 
     /* destructor function */
     ~GaussianProcess();
@@ -97,6 +100,8 @@ public:
         using a gentic algorithm
     */
 
+    
+
     /* inference */
     void predict(Eigen::MatrixXd* X_TEST, char save);
     /*  Conditioning the GP:
@@ -141,12 +146,7 @@ public:
 
     Eigen::VectorXd& get_Mu();
 
-    /* mutator functions  */
-    void set_lengthScale(float l_);
-
-    void set_signalNoise(float sf_);
-
-    void set_kernel(std::string kernel_);
+    Eigen::VectorXd& get_y_test();
 
 };
 
