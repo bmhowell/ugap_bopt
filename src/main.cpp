@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
     // set up training data for model
-    model.train(x_train, y_train);
+    model.train(*x_train, *y_train);
 
     // test vector
     int num_test = 25; 

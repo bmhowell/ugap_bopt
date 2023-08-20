@@ -25,25 +25,25 @@ GaussianProcess::~GaussianProcess() {
 }
 
 /* infrastructure functions */
-void GaussianProcess::kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y, double& length, double& sigma){
+void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma){
     if (kernel == "RBF"){
-        if (X->rows() != Y->rows()){
+        if (X.rows() != Y.rows()){
             
             // kernel construction algorithm for non-symmetric matrices
-            Cov = Eigen::MatrixXd::Zero(X->rows(), Y->rows());
-            for (int i = 0; i < X->rows(); i++){
-                for (int j = 0; j < Y->rows(); j++){
+            Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = 0; j < Y.rows(); j++){
                     // eq 2.31 in Rasmussen & Williams
-                    Cov(i, j) = sigma * exp( -(X->row(i) - Y->row(j)).squaredNorm() / 2 / (length * length) );
+                    Cov(i, j) = sigma * exp( -(X.row(i) - Y.row(j)).squaredNorm() / 2 / (length * length) );
                 }
             }
         } else{
             // kernel construction algorithm for symmetric matrices
-            Cov = Eigen::MatrixXd::Zero(X->rows(), Y->rows());
-            for (int i = 0; i < X->rows(); i++){
-                for (int j = i; j < Y->rows(); j++){
+            Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = i; j < Y.rows(); j++){
                     // eq 2.31 in Rasmussen & Williams
-                    Cov(i, j) = sigma * exp( -(X->row(i) - Y->row(j)).squaredNorm() / 2 / (length * length) );
+                    Cov(i, j) = sigma * exp( -(X.row(i) - Y.row(j)).squaredNorm() / 2 / (length * length) );
                     Cov(j, i) = Cov(i, j);
                 }
             }
@@ -54,14 +54,32 @@ void GaussianProcess::kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y, double& l
 
 }
 
+void GaussianProcess::scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y){
+    // scale data to zero mean and unit variance
+    //      - l: number of test points
+    //      - m: number of data points
+    //      - n: number of variables
+    Eigen::VectorXd mean = X.colwise().mean();
+    Eigen::VectorXd std  = ((X.rowwise() - mean.transpose()).array().square().colwise().sum() / (X.rows() - 1)).sqrt();
+    x_train = (X.rowwise() - mean.transpose()).array().rowwise() / std.transpose().array();
+
+    double y_mean = Y.mean();
+    double y_stddev = (Y.array() - y_mean).square().sum() / (Y.size() - 1);
+    y_stddev = (y_stddev);
+    y_train = (Y.array() - y_mean) / y_stddev;
+
+}
+
+
+
 double GaussianProcess::compute_neg_log_likelihood(double& length, double& sigma, double& noise){
     
     // compute covariance matrix
-    kernelGP(x_train, x_train, sigma, length);
+    kernelGP(x_train, x_train, length, sigma);
     Ky = Cov;
 
     // add noise to covariance matrix
-    for (int i = 0; i < (*x_train).rows(); i++){
+    for (int i = 0; i < x_train.rows(); i++){
         Ky(i, i) += noise;
     }
 
@@ -73,32 +91,28 @@ double GaussianProcess::compute_neg_log_likelihood(double& length, double& sigma
     }
 
     // Solve for alpha using Cholesky factorization
-    alpha = lltOfKy.solve(*y_train);
+    alpha = lltOfKy.solve(y_train);
     L     = lltOfKy.matrixL();
 
-    return -0.5 * (*y_train).transpose() * alpha - 0.5 * L.diagonal().array().log().sum();
+    return -0.5 * (y_train).transpose() * alpha - 0.5 * L.diagonal().array().log().sum();
 }
 
-void GaussianProcess::train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN){
+void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "\n--- Training Gaussian Process ---\n" << std::endl;
 
     trained = true; 
-    x_train = X_TRAIN; 
-    y_train = Y_TRAIN;
+    scale_data(X_TRAIN, Y_TRAIN);
 
-    double c_length[2] = {1e-3, 10000.0};                              // length scale parameter bounds
-    double c_sigma[2]  = {1e-3, 1.0};                                // signal noise variance bounds
-    double c_noise[2]  = {1e-10, 1e-3};                              // noise variance bounds
+    double c_length[2] = {1e-3, 1000.0};                           // length scale parameter bounds
+    double c_sigma[2]  = {1e-3, 1.0};                               // signal noise variance bounds
+    double c_noise[2]  = {1e-10, 1e-3};                             // noise variance bounds
 
     int pop = 24;                                                   // population size
     int P   = 4;                                                    // number of parents
     int C   = 4;                                                    // number of children
     int G   = 10;                                                   // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
-
-    Eigen::MatrixXd param(pop, 4);                                   // ∈ ℝ (population x param + obj)
-    // Eigen::MatrixXd parents(P, 4);                                   // ∈ ℝ (parents x param + obj)
-    // Eigen::MatrixXd children(C, 4);                                  // ∈ ℝ (children x param + obj)
+    Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
 
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
@@ -107,9 +121,9 @@ void GaussianProcess::train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN){
 
 
     // initialize parameter vectors
-    param(0, 0) = 1000.; 
-    param(0, 1) = 0.966957; 
-    param(0, 2) = 0.000872863; 
+    param(0, 0) = 18.0225; 
+    param(0, 1) = 0.507717; 
+    param(0, 2) = 4.25249e-05; 
     for (int i = 1; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
@@ -145,8 +159,6 @@ void GaussianProcess::train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN){
         }
 
         // mate the top performing parents
-        // parents   = param.topRows(P);
-        // children  = param.block(P, 0, C, 4);
         for (int i = 0; i < P; i+=2){
             lam_1 = distribution(gen);
             lam_2 = distribution(gen);
@@ -181,9 +193,7 @@ void GaussianProcess::train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN){
 
 }
 
-
-
-void GaussianProcess::predict(Eigen::MatrixXd* X_TEST, char save){
+void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     
     
     // throw error if training has not occured
@@ -195,13 +205,13 @@ void GaussianProcess::predict(Eigen::MatrixXd* X_TEST, char save){
     x_test = X_TEST;
 
     // initialize covariance sub matrices
-    Eigen::MatrixXd Ks((*x_train).rows(), (*x_test).rows());          // ∈ ℝ (m x l)
-    Eigen::MatrixXd Kss((*x_test).rows(), (*x_test).rows());          // ∈ ℝ (l x l))
+    Eigen::MatrixXd Ks(x_train.rows(), x_test.rows());          // ∈ ℝ (m x l)
+    Eigen::MatrixXd Kss(x_test.rows(), x_test.rows());          // ∈ ℝ (l x l))
 
     // compute required covariance matrices
-    kernelGP(x_train, x_test, sf, l);
+    kernelGP(x_train, x_test, l, sf);
     Ks = Cov;
-    kernelGP(x_test, x_test, sf, l);
+    kernelGP(x_test, x_test, l, sf);
     Kss = Cov;
 
     // compute mean y_test ∈ ℝ (l x m) -> see Algorithm 2.1 in Rasmussen & Williams

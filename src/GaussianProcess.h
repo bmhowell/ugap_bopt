@@ -36,10 +36,10 @@ private:
     Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict()
 
     // data
-    Eigen::MatrixXd* x_train; 
-    Eigen::VectorXd* y_train;
-    Eigen::MatrixXd* x_test; 
-    Eigen::VectorXd  y_test;                              // ∈ ℝ (m)
+    Eigen::MatrixXd x_train; 
+    Eigen::VectorXd y_train;
+    Eigen::MatrixXd x_test; 
+    Eigen::VectorXd y_test;
 
     // learned parameters
     double l, sf, sn;
@@ -56,7 +56,7 @@ public:
     ~GaussianProcess();
 
     /* optimization functions */
-    void kernelGP(Eigen::MatrixXd* X, Eigen::MatrixXd* Y, double& sigma, double& length);
+    void kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma);
     /*  description:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
@@ -83,11 +83,15 @@ public:
      *      - Mu: average predicted output ∈ ℝ (l x m)
      *
     */
+    
+    void scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
+
+    void unscale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
 
     double compute_neg_log_likelihood(double& length, double& sigma, double& noise);
 
     /* training */
-    void train(Eigen::MatrixXd* X_TRAIN, Eigen::VectorXd* Y_TRAIN);
+    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
     /* Model selection
         automatic bias-variance trade off
             - model parameters: 
@@ -100,7 +104,7 @@ public:
     
 
     /* inference */
-    void predict(Eigen::MatrixXd* X_TEST, char save);
+    void predict(Eigen::MatrixXd& X_TEST, char save);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points
