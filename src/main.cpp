@@ -28,8 +28,8 @@ int main(int argc, char** argv) {
 
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
-    sim sim_settings;
-    // sim_settings.bootstrap = 1;
+    sim         s;
+    // s.bootstrap = 1;
 
     // set file path
     std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
@@ -40,14 +40,14 @@ int main(int argc, char** argv) {
 
     // STEP 1: sample data
     int ndata0;
-    if (sim_settings.bootstrap == 0){
+    if (s.bootstrap == 0){
         ndata0 = read_data(bopti, file_path);
     }else{
         ndata0 = 2; 
-        bootstrap(sim_settings, c, bopti, ndata0, file_path);
+        bootstrap(s, c, bopti, ndata0, file_path);
         
         // store data
-        store_tot_data(bopti, sim_settings, ndata0, file_path);
+        store_tot_data(bopti, s, ndata0, file_path);
     }
 
 
@@ -60,21 +60,27 @@ int main(int argc, char** argv) {
     // set up gaussian process
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
-    // set up training data for model
-    model.train(*x_train, *y_train);
+    // pre-learned parameters
+    std::vector<double> model_param = {0.835863, 0.0962956, 0.000346019};  // obj -> -133.356
+    
+    // if available, define model parameters: length, signal variance, noise variance
+    int pre_learned = true; 
+    if (pre_learned){
+        model.train(*x_train, *y_train, model_param);
+    }else{
+        model.train(*x_train, *y_train);
+    }
+    
+    model.train(*x_train, *y_train, model_param);
 
-    // test vector
+    // generate test vector by uniformly random x_test data for GP
     int num_test = 25; 
-    Eigen::MatrixXd* x_test  = new Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
-    Eigen::MatrixXd  sub_mat = (*x_train).block(0, 0, num_test, 5);     // ∈ ℝ^(ndata x 5
-
-    // uniformly random x_test data for GP
-    // gen_test_points(c, x_test);  
+    Eigen::MatrixXd  x_test  = Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
+    gen_test_points(c, x_test);  
+    model.predict(x_test, 'y');
     
-    // model.predict(x_test, 'y');
-    
-    // std::cout << "x_test: \n" << *x_test << std::endl; 
-    // std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
+    std::cout << "x_test: \n"   << x_test << std::endl; 
+    std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
 
 
 
@@ -105,7 +111,7 @@ int main(int argc, char** argv) {
     
     delete y_train;
     delete x_train;
-    delete x_test; 
+    // delete x_test; 
 
     delete bopti;
     

@@ -6,8 +6,10 @@
 GaussianProcess::GaussianProcess() {
 
     // MEMBER VARIABLES
-    kernel   = "RBF";                  // covariance kernel specification
-    trained  = false;                  // flag to indicate if GP has been trained
+    kernel         = "RBF";            // covariance kernel specification
+    trained        = false;            // flag to indicate if GP has been trained
+    train_scaled   = false;            // flag to indicate if training data has been scaled
+    val_scaled     = false;            // flag to indicate if validation data has been scaled
 
     file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";
 }
@@ -59,18 +61,32 @@ void GaussianProcess::scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y){
     //      - l: number of test points
     //      - m: number of data points
     //      - n: number of variables
-    Eigen::VectorXd mean = X.colwise().mean();
-    Eigen::VectorXd std  = ((X.rowwise() - mean.transpose()).array().square().colwise().sum() / (X.rows() - 1)).sqrt();
-    x_train = (X.rowwise() - mean.transpose()).array().rowwise() / std.transpose().array();
 
-    double y_mean = Y.mean();
-    double y_stddev = (Y.array() - y_mean).square().sum() / (Y.size() - 1);
-    y_stddev = (y_stddev);
-    y_train = (Y.array() - y_mean) / y_stddev;
+    train_scaled = true; 
+
+    x_mean = X.colwise().mean();
+    x_std  = ((X.rowwise() - x_mean.transpose()).array().square().colwise().sum() / (X.rows() - 1)).sqrt();
+
+    y_mean = Y.mean();
+    y_std = (Y.array() - y_mean).square().sum() / (Y.size() - 1);
+    y_std = sqrt(y_std);
+
+    x_train = (X.rowwise() - x_mean.transpose()).array().rowwise() / x_std.transpose().array();
+    y_train = (Y.array() - y_mean) / y_std;
 
 }
 
+void GaussianProcess::scale_data(Eigen::MatrixXd& X_TEST) {
+    // Scale validation data using mean and standard deviation from training data
+    val_scaled = true; 
+    x_test = (X_TEST.rowwise() - x_mean.transpose()).array().rowwise() / x_std.transpose().array();
+}
 
+void GaussianProcess::unscale_data(Eigen::VectorXd& Y_TEST){
+    // map scaled y_test back to original scale
+    val_scaled = false;
+    y_test = y_test.array() * y_std + y_mean;
+}
 
 double GaussianProcess::compute_neg_log_likelihood(double& length, double& sigma, double& noise){
     
@@ -108,8 +124,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     double c_noise[2]  = {1e-10, 1e-3};                             // noise variance bounds
 
     int pop = 24;                                                   // population size
-    int P   = 4;                                                    // number of parents
-    int C   = 4;                                                    // number of children
+    int P   = 6;                                                    // number of parents
+    int C   = 6;                                                    // number of children
     int G   = 10;                                                   // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
     Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
@@ -119,12 +135,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::mt19937 gen(rd());                                         // Seed the random number generator
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
-
     // initialize parameter vectors
-    param(0, 0) = 18.0225; 
-    param(0, 1) = 0.507717; 
-    param(0, 2) = 4.25249e-05; 
-    for (int i = 1; i < param.rows(); ++i){
+    for (int i = 0; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
         param(i, 2) = c_noise[0]  + (c_noise[1]  - c_noise[0])  * distribution(gen);
@@ -193,6 +205,40 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
 
 }
 
+void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, 
+                            std::vector<double>& model_param){
+    // function overloading to take into account previously learned parameters 
+    trained = true; 
+    
+    // unpack model parameters
+    l = model_param[0];
+    sf = model_param[1];
+    sn = model_param[2];
+
+    // compute covariance matrix
+    kernelGP(x_train, x_train, l, sf);
+    Ky = Cov;
+
+    // add noise to covariance matrix
+    for (int i = 0; i < x_train.rows(); i++){
+        Ky(i, i) += sn;
+    }
+
+    // Compute Cholesky decomposition of Ky
+    Eigen::LLT<Eigen::MatrixXd> lltOfKy(Ky);
+    if (lltOfKy.info() == Eigen::NumericalIssue) {
+        // Handle numerical issues with Cholesky decomposition
+        // For example, matrix is not positive definite
+    }
+
+    // Solve for alpha using Cholesky factorization
+    alpha = lltOfKy.solve(y_train);
+    L     = lltOfKy.matrixL();
+
+    scale_data(X_TRAIN, Y_TRAIN);
+    
+}
+
 void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     
     
@@ -202,7 +248,7 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
         return;
     }
 
-    x_test = X_TEST;
+    scale_data(X_TEST);
 
     // initialize covariance sub matrices
     Eigen::MatrixXd Ks(x_train.rows(), x_test.rows());          // ∈ ℝ (m x l)
@@ -213,9 +259,10 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     Ks = Cov;
     kernelGP(x_test, x_test, l, sf);
     Kss = Cov;
-
+    
     // compute mean y_test ∈ ℝ (l x m) -> see Algorithm 2.1 in Rasmussen & Williams
     y_test = Ks.transpose() * alpha;                                  // eq. 2.25
+    unscale_data(y_test);
 
     // compute variance: V  ∈ ℝ (l x l)
     Eigen::MatrixXd V = Ky.llt().matrixL().solve(Ks);                 // eq. 2.26
@@ -228,14 +275,6 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
 std::string GaussianProcess::get_kernel() const {
     return kernel;
 };
-
-// float GaussianProcess::get_lengthScale() const {
-//     return length;
-// }
-
-// float GaussianProcess::get_signalNoise() const {
-//     return sigma;
-// }
 
 Eigen::MatrixXd& GaussianProcess::get_Cov(){
     return Cov;

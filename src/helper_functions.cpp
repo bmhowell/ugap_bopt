@@ -147,18 +147,18 @@ void to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y){
     }
 }
 
-void gen_test_points(constraints& c, Eigen::MatrixXd* X){
+void gen_test_points(constraints& c, Eigen::MatrixXd& X){
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
     std::mt19937 gen(rd());                                         // Seed the random number generator
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
-    for (int ind = 0; ind<X->rows(); ++ind){
-        (*X)(ind, 0) = (c.max_temp - c.min_temp) * distribution(gen) + c.min_temp;
-        (*X)(ind, 1) = (c.max_rp - c.min_rp)     * distribution(gen) + c.min_rp;
-        (*X)(ind, 2) = (c.max_vp - c.min_vp)     * distribution(gen) + c.min_vp;
-        (*X)(ind, 3) = (c.max_uvi - c.min_uvi)   * distribution(gen) + c.min_uvi;
-        (*X)(ind, 4) = (c.max_uvt - c.min_uvt)   * distribution(gen) + c.min_uvt;
+    for (int ind = 0; ind<X.rows(); ++ind){
+        X(ind, 0) = (c.max_temp - c.min_temp) * distribution(gen) + c.min_temp;
+        X(ind, 1) = (c.max_rp - c.min_rp)     * distribution(gen) + c.min_rp;
+        X(ind, 2) = (c.max_vp - c.min_vp)     * distribution(gen) + c.min_vp;
+        X(ind, 3) = (c.max_uvi - c.min_uvi)   * distribution(gen) + c.min_uvi;
+        X(ind, 4) = (c.max_uvt - c.min_uvt)   * distribution(gen) + c.min_uvt;
     }
 
 }

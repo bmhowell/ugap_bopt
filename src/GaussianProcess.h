@@ -20,7 +20,7 @@ private:
     std::string kernel;                                   // covariance kernel specification
     std::string file_path;                                // file path to store data
     
-    bool trained;                                         // flag to indicate if GP has been trained
+    bool trained, train_scaled, val_scaled;               // flag to indicate if GP has been trained
 
     // initialize covariance matrices
     //      - l --> number of samples
@@ -40,6 +40,9 @@ private:
     Eigen::VectorXd y_train;
     Eigen::MatrixXd x_test; 
     Eigen::VectorXd y_test;
+
+    Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
+    double y_mean, y_std;                                 // ∈ ℝ         ⊂ scale_data()
 
     // learned parameters
     double l, sf, sn;
@@ -84,22 +87,33 @@ public:
      *
     */
     
+    /* scaling data */
     void scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
 
-    void unscale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
+    void scale_data(Eigen::MatrixXd& X_TEST);
 
+    void unscale_data(Eigen::VectorXd& Y_TEST);
+
+    /* model selection */
     double compute_neg_log_likelihood(double& length, double& sigma, double& noise);
-
+    /* description:
+        - choice of optimization method
+        - model parameters: 
+            - length scale: l
+            - signal variance: σ_f^2
+            - noise parameter: σ_n^2
+    */
+           
     /* training */
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
-    /* Model selection
-        automatic bias-variance trade off
-            - model parameters: 
-                - noise parameter: σ^2
-                - length scale: l
-        
-        using a gentic algorithm
+    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, std::vector<double>& model_param); 
+    /* 
+        Either: 
+            - perform model selection
+            - or use pre-defined model parameters       
     */
+
+
 
     
 

@@ -14,6 +14,6 @@ void    write_to_file(bopt &b, sim& sim_set, int id, std::string file_path);
 void    store_tot_data(std::vector<bopt>* bopti, sim& sim_set, int num_sims, std::string file_path); 
 int     read_data(std::vector<bopt>* bopti, std::string file_path); 
 void    to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y);
-void    gen_test_points(constraints &c, Eigen::MatrixXd* X); 
+void    gen_test_points(constraints &c, Eigen::MatrixXd& X); 
 
 #endif  // HELPER_FUNCTIONS_H
