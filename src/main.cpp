@@ -30,10 +30,11 @@ int main(int argc, char** argv) {
     constraints c; 
     sim         s;
     // s.bootstrap = 1;
+    s.time_stepping = 2;
 
     // set file path
-    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
-    // file_path = "/home/brian/Documents/berkeley/materials_opt/output/";         // LINUX CENTRAL COMPUTING
+    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
+    std::string file_path = "/home/brian/Documents/berkeley/opt_ugap/output";         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -43,7 +44,7 @@ int main(int argc, char** argv) {
     if (s.bootstrap == 0){
         ndata0 = read_data(bopti, file_path);
     }else{
-        ndata0 = 2; 
+        ndata0 = 1000; 
         bootstrap(s, c, bopti, ndata0, file_path);
         
         // store data
@@ -64,7 +65,8 @@ int main(int argc, char** argv) {
     std::vector<double> model_param = {0.835863, 0.0962956, 0.000346019};  // obj -> -133.356
     
     // if available, define model parameters: length, signal variance, noise variance
-    int pre_learned = true; 
+    int pre_learned = false; 
+    
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
     }else{

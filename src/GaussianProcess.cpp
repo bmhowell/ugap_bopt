@@ -1,5 +1,6 @@
 
 #include "GaussianProcess.h"
+// #include "helper_functions.h"
 // #include "AcquisitionFunction.h"
 
 /* default constructor */
@@ -124,9 +125,9 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     double c_noise[2]  = {1e-10, 1e-3};                             // noise variance bounds
 
     int pop = 24;                                                   // population size
-    int P   = 6;                                                    // number of parents
-    int C   = 6;                                                    // number of children
-    int G   = 10;                                                   // number of generations
+    int P   = 4;                                                    // number of parents
+    int C   = 4;                                                    // number of children
+    int G   = 100;                                                  // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
     Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
 
@@ -135,7 +136,11 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::mt19937 gen(rd());                                         // Seed the random number generator
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
-    // initialize parameter vectors
+    // initialize parameter vectors 
+    // for time_stepping = 2: 0.988181,0.818414,0.000479554-> 407
+    param(0, 0) = 0.988181;                                         // length scale
+    param(0, 1) = 0.818414;                                         // signal noise variance
+    param(0, 2) = 0.000479554;                                      // noise variance
     for (int i = 0; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
@@ -143,6 +148,9 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     }
 
     // loop over generations
+    std::vector<double> top_performer; 
+    std::vector<double> avg_parent; 
+    std::vector<double> avg_total; 
     for (int g = 0; g < G; ++g){
         std::cout << "generation: " << g << std::endl;
         // loop over population
@@ -151,46 +159,54 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
             param(i, 3) = compute_neg_log_likelihood(param(i, 0), param(i, 1), param(i, 2));
         }
 
-        // Custom comparator for sorting by the fourth column in descending order
-        auto comparator = [](const Eigen::VectorXd& a, const Eigen::VectorXd& b) {
-            return a(3) > b(3);
-        };
+        sort_data(param);
 
-        // Convert Eigen matrix to std::vector of Eigen::VectorXd
-        std::vector<Eigen::VectorXd> rows;
-        for (int i = 0; i < param.rows(); ++i) {
-            rows.push_back(param.row(i));
+        // track top and average performers
+        top_performer.push_back(param(0, 3));
+        avg_parent.push_back(param.col(param.cols() - 1).head(P).mean());
+        avg_total.push_back(param.col(param.cols() - 1).mean());
+
+        if (g < G - 1){
+            // mate the top performing parents
+            for (int i = 0; i < P; i+=2){
+                lam_1 = distribution(gen);
+                lam_2 = distribution(gen);
+                param.row(i + C)        = lam_1 * param.row(i) + (1 - lam_1) * param.row(i+1);
+                param.row(i + C + 1)    = lam_2 * param.row(i) + (1 - lam_2) * param.row(i+1);
+            }
+
+            // initialize parameter vectors for remaining rows
+            for (int i = P+C; i < param.rows(); ++i){
+                param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
+                param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
+                param(i, 2) = c_noise[0]  + (c_noise[1]  - c_noise[0])  * distribution(gen);
+            }
+
+            std::cout << "top performer: " << param(0, 3) << std::endl;
+            std::cout << "    length: " << param(0, 0) << std::endl;
+            std::cout << "    sigma:  " << param(0, 1) << std::endl;
+            std::cout << "    noise:  " << param(0, 2) << std::endl;
         }
-
-        // Sort using the custom comparator
-        std::sort(rows.begin(), rows.end(), comparator);
-
-        // Copy sorted rows back to Eigen matrix
-        for (int i = 0; i < param.rows(); ++i) {
-            param.row(i) = rows[i];
-        }
-
-        // mate the top performing parents
-        for (int i = 0; i < P; i+=2){
-            lam_1 = distribution(gen);
-            lam_2 = distribution(gen);
-            param.row(i + C)        = lam_1 * param.row(i) + (1 - lam_1) * param.row(i+1);
-            param.row(i + C + 1)    = lam_2 * param.row(i) + (1 - lam_2) * param.row(i+1);
-        }
-
-        // initialize parameter vectors for remaining rows
-        for (int i = P+C; i < param.rows(); ++i){
-            param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
-            param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
-            param(i, 2) = c_noise[0]  + (c_noise[1]  - c_noise[0])  * distribution(gen);
-        }
-
-        std::cout << "top performer: " << param(0, 3) << std::endl;
-        std::cout << "    length: " << param(0, 0) << std::endl;
-        std::cout << "    sigma:  " << param(0, 1) << std::endl;
-        std::cout << "    noise:  " << param(0, 2) << std::endl;
-
     }
+
+    std::ofstream store_params, store_performance; 
+    std::cout << "--- storing data ---\n" << std::endl;
+    store_params.open(file_path + "/params.txt");
+    store_performance.open(file_path + "/performance.txt");
+
+    store_params      << "length, sigma, noise"                 << std::endl;
+    store_performance << "top_performer, avg_parent, avg_total" << std::endl;
+
+    for (int i = 0; i < top_performer.size(); ++i){
+        store_performance << top_performer[i] << "," << avg_parent[i] << "," << avg_total[i] << std::endl;
+        if (i < param.rows()){
+            store_params      << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
+        }
+    }
+    store_params.close();
+    store_performance.close();
+    
+    std::cout << "--- data saved ---\n" << std::endl;
 
     l  = param(0, 0);
     sf = param(0, 1);
@@ -270,6 +286,28 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     Cov = Kss - V.transpose() * V;                                    // eq. 2.26   
 
 }
+
+void GaussianProcess::sort_data(Eigen::MatrixXd& PARAM){
+    // Custom comparator for sorting by the fourth column in descending order
+    auto comparator = [](const Eigen::VectorXd& a, const Eigen::VectorXd& b) {
+        return a(3) > b(3);
+    };
+
+    // Convert Eigen matrix to std::vector of Eigen::VectorXd
+    std::vector<Eigen::VectorXd> rows;
+    for (int i = 0; i < PARAM.rows(); ++i) {
+        rows.push_back(PARAM.row(i));
+    }
+
+    // Sort using the custom comparator
+    std::sort(rows.begin(), rows.end(), comparator);
+
+    // Copy sorted rows back to Eigen matrix
+    for (int i = 0; i < PARAM.rows(); ++i) {
+        PARAM.row(i) = rows[i];
+    }
+}
+
 
 /* accessor functions */
 std::string GaussianProcess::get_kernel() const {

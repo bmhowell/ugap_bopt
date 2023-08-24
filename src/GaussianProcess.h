@@ -150,6 +150,12 @@ public:
      *
      */
 
+    void sort_data(Eigen::MatrixXd& PARAM);
+    /* 
+        Implements sorting algorithm to rank top performers 
+        for genetic algorithm. 
+    */ 
+
     /* accessor functions */
     std::string get_kernel() const;
 

@@ -81,6 +81,7 @@ void write_to_file(bopt& b, sim& sim_set, int id, std::string file_path){
 }
 
 void store_tot_data(std::vector<bopt> *bopti, sim& sim_set, int num_sims, std::string file_path){
+    std::cout << "--- storing data ---\n" << std::endl;
     std::ofstream myfile;
     myfile.open(file_path + "/tot_bopt.dat");
     myfile << "temp,rp,vp,uvi,uvt,obj,tn" << std::endl;

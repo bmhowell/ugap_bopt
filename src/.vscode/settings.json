@@ -74,6 +74,16 @@
         "random": "cpp",
         "algorithm": "cpp",
         "charconv": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "*.tcc": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "functional": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "utility": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp"
     }
 }
