@@ -117,6 +117,8 @@ double GaussianProcess::compute_neg_log_likelihood(double& length, double& sigma
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "\n--- Training Gaussian Process ---\n" << std::endl;
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     trained = true; 
     scale_data(X_TRAIN, Y_TRAIN);
 
@@ -152,12 +154,12 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::vector<double> avg_parent; 
     std::vector<double> avg_total; 
     for (int g = 0; g < G; ++g){
+        
         std::cout << "generation: " << g << std::endl;
         // loop over population
         for (int i = 0; i < pop; ++i){
             // compute negative log-likelihood
             param(i, 3) = compute_neg_log_likelihood(param(i, 0), param(i, 1), param(i, 2));
-            // std::cout << "neg_log_likelihood: " << param(i, 3) << std::endl;
         }
 
         sort_data(param);
@@ -179,36 +181,37 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
             // initialize parameter vectors for remaining rows
             for (int i = P+C; i < param.rows(); ++i){
                 param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
-                param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
-                param(i, 2) = c_noise[0]  + (c_noise[1]  - c_noise[0])  * distribution(gen);
+                param(i, 1) = c_sigma[0]  + (c_sigma[1]  -  c_sigma[0]) * distribution(gen);
+                param(i, 2) = c_noise[0]  + (c_noise[1]  -  c_noise[0]) * distribution(gen);
             }
 
             std::cout << "top performer: " << param(0, 3) << std::endl;
-            std::cout << "    length: " << param(0, 0) << std::endl;
-            std::cout << "    sigma:  " << param(0, 1) << std::endl;
-            std::cout << "    noise:  " << param(0, 2) << std::endl;
+            std::cout << "    length: "    << param(0, 0) << std::endl;
+            std::cout << "    sigma:  "    << param(0, 1) << std::endl;
+            std::cout << "    noise:  "    << param(0, 2) << std::endl;
         }
     }
 
-    std::ofstream store_params, store_performance; 
+    // store data
     std::cout << "--- storing data ---\n" << std::endl;
+    std::ofstream store_params, store_performance; 
     store_params.open(file_path + "/params.txt");
     store_performance.open(file_path + "/performance.txt");
 
+    // write to file
     store_params      << "length, sigma, noise"                 << std::endl;
     store_performance << "top_performer, avg_parent, avg_total" << std::endl;
-
     for (int i = 0; i < top_performer.size(); ++i){
         store_performance << top_performer[i] << "," << avg_parent[i] << "," << avg_total[i] << std::endl;
         if (i < param.rows()){
-            store_params      << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
+            store_params << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
         }
     }
     store_params.close();
     store_performance.close();
-    
     std::cout << "--- data saved ---\n" << std::endl;
 
+    // save best parameters to object
     l  = param(0, 0);
     sf = param(0, 1);
     sn = param(0, 2);
@@ -217,13 +220,20 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "    final length: " << param(0, 0) << std::endl;
     std::cout << "    final sigma:  " << param(0, 1) << std::endl;
     std::cout << "    final noise:  " << param(0, 2) << std::endl;
-    std::cout << "\n--- Parameter Tuning Complete ---\n" << std::endl;
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
+    std::cout << "--- Parameter tunning/Training time time: " << duration / 60 << "min ---" << std::endl;
+    std::cout << "--- Parameter Tuning Complete ---\n" << std::endl;
 
 
 }
 
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, 
                             std::vector<double>& model_param){
+
+    auto start = std::chrono::high_resolution_clock::now();
+
     // function overloading to take into account previously learned parameters 
     trained = true; 
     
@@ -253,6 +263,10 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     L     = lltOfKy.matrixL();
 
     scale_data(X_TRAIN, Y_TRAIN);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
+    std::cout << "--- Training time time: " << duration / 60 << "min ---" << std::endl;
     
 }
 

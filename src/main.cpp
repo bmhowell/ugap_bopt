@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     constraints c; 
     sim         s;
     s.bootstrap = 1;
-    s.time_stepping = 2;
+    s.time_stepping = 0;
     s.updateTimeSteppingValues();
 
     // set file path

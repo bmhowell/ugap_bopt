@@ -41,11 +41,11 @@ double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& 
     }
 
     VoxelSystem1.Simulate(simi.method, simi.save_voxel);
-    // Calculate the duration of the code segment in minutes
+    
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::minutes>(end - start).count();
+    auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
 
-    std::cout << "simulation time: " << duration << " hours" << std::endl;
+    std::cout << " --- Simulation time: " << duration / 60 << "min ---" << std::endl;
     std::cout << "testing obj: " << VoxelSystem1.obj << std::endl;
     return VoxelSystem1.obj; 
 }
