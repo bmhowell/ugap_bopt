@@ -66,8 +66,8 @@ typedef struct sim{
     int bootstrap;      // bootstrap
     int time_stepping;  // representing with dt/node pair
 
-    double DT[7]   = {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5};
-    int    NODE[7] = {11,     15,     21,   25,     31,     41,   51};
+    static constexpr double DT[7]   = {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5};
+    static constexpr int    NODE[7] = {11,     15,     21,   25,     31,     41,   51};
     
     float  tfinal  = 30.;   // final time
     double dt;              // time step
@@ -93,6 +93,12 @@ typedef struct sim{
         dt = DT[time_stepping];
         node = NODE[time_stepping];
     }
+
+    void updateTimeSteppingValues() {
+        dt = DT[time_stepping];
+        node = NODE[time_stepping];
+    }
+
 } sim;
 
 

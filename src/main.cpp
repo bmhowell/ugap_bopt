@@ -16,6 +16,8 @@
 
 int main(int argc, char** argv) {
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Parse Args
     if (find_arg_idx(argc, argv, "-h") >= 0) {
         std::cout << "Options:" << std::endl;
@@ -29,12 +31,13 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
-    // s.bootstrap = 1;
+    s.bootstrap = 1;
     s.time_stepping = 2;
+    s.updateTimeSteppingValues();
 
     // set file path
     // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";   // MACBOOK PRO
-    std::string file_path = "/home/brian/Documents/berkeley/opt_ugap/output";         // LINUX CENTRAL COMPUTING
+    std::string file_path = "/home/brian/Documents/berkeley/opt_ugap/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -61,28 +64,28 @@ int main(int argc, char** argv) {
     // set up gaussian process
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
-    // pre-learned parameters
-    std::vector<double> model_param = {0.835863, 0.0962956, 0.000346019};  // obj -> -133.356
+    // // pre-learned parameters
+    std::vector<double> model_param; // = {0.835863, 0.0962956, 0.000346019};  // obj -> -133.356
     
     // if available, define model parameters: length, signal variance, noise variance
     int pre_learned = false; 
-    
+
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
     }else{
         model.train(*x_train, *y_train);
     }
     
-    model.train(*x_train, *y_train, model_param);
+    // model.train(*x_train, *y_train, model_param);
 
-    // generate test vector by uniformly random x_test data for GP
-    int num_test = 25; 
-    Eigen::MatrixXd  x_test  = Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
-    gen_test_points(c, x_test);  
-    model.predict(x_test, 'y');
+    // // generate test vector by uniformly random x_test data for GP
+    // int num_test = 25; 
+    // Eigen::MatrixXd  x_test  = Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
+    // gen_test_points(c, x_test);  
+    // model.predict(x_test, 'y');
     
-    std::cout << "x_test: \n"   << x_test << std::endl; 
-    std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
+    // std::cout << "x_test: \n"   << x_test << std::endl; 
+    // std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
 
 
 
@@ -116,6 +119,15 @@ int main(int argc, char** argv) {
     // delete x_test; 
 
     delete bopti;
+
+    // Get the current time after the code segment finishes
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // Calculate the duration of the code segment in hours
+    auto duration = std::chrono::duration_cast<std::chrono::hours>(end - start).count();
+
+    std::cout << "Time taken by code segment: " << duration << " hours" << std::endl;
+
     
     std::cout << "Hello World!" << std::endl;
 

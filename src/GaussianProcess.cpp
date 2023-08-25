@@ -157,6 +157,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
         for (int i = 0; i < pop; ++i){
             // compute negative log-likelihood
             param(i, 3) = compute_neg_log_likelihood(param(i, 0), param(i, 1), param(i, 2));
+            // std::cout << "neg_log_likelihood: " << param(i, 3) << std::endl;
         }
 
         sort_data(param);
