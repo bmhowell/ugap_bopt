@@ -7,7 +7,6 @@
 #include "common.h"
 #include "helper_functions.h"
 
-
 /*
 - 
 
@@ -31,7 +30,7 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
-    s.bootstrap = 1;
+    s.bootstrap = 0;
     s.time_stepping = 0;
     s.updateTimeSteppingValues();
 
@@ -124,9 +123,9 @@ int main(int argc, char** argv) {
     auto end = std::chrono::high_resolution_clock::now();
 
     // Calculate the duration of the code segment in hours
-    auto duration = std::chrono::duration_cast<std::chrono::hours>(end - start).count();
+    auto duration = std::chrono::duration_cast<std::chrono::minutes>(end - start).count();
 
-    std::cout << "Time taken by code segment: " << duration << " hours" << std::endl;
+    std::cout << "Time taken by code segment: " << duration/60 << " hours" << std::endl;
 
     
     std::cout << "Hello World!" << std::endl;

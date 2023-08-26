@@ -5,7 +5,6 @@
 #include "GaussianProcess.h"
 #include "Voxel.h"
 #include "common.h"
-
 #include "helper_functions.h"  // Include the header file
 
 
@@ -143,7 +142,9 @@ int  read_data(std::vector<bopt> *bopti, std::string file_path){
     return id; 
 }
 
-void to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y){
+void to_eigen(std::vector<bopt>* data, 
+              Eigen::MatrixXd*   X, 
+              Eigen::VectorXd*   Y){
     for (int i = 0; i < (*data).size(); ++i) {
         (*X)(i, 0) = (*data)[i].temp;
         (*X)(i, 1) = (*data)[i].rp;
@@ -154,7 +155,8 @@ void to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y){
     }
 }
 
-void gen_test_points(constraints& c, Eigen::MatrixXd& X){
+void gen_test_points(constraints&     c, 
+                     Eigen::MatrixXd& X){
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
     std::mt19937 gen(rd());                                         // Seed the random number generator
@@ -169,4 +171,3 @@ void gen_test_points(constraints& c, Eigen::MatrixXd& X){
     }
 
 }
-

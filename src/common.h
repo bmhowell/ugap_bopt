@@ -2,11 +2,28 @@
 #define __COMMON_H__
 #pragma once
 
+#include <Eigen/Dense>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <chrono>
+
 // Program Constants
 // #define TFINAL   30.0
 // #define NODE     11        // {11,     15,     21,   25,     31,     41,   51}
 // #define DT       1.5e-3    // {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5} (FOR SHANNA DM0)
 
+// Function type definition
+typedef double (*FunctionPtr)(int); // Change the return type and parameter as needed
+
+// Optimization structs
+typedef struct gen_alg_params{
+    int pop;      // population size
+    int P;        // num parents
+    int C;        // num children
+    int G;        // num generations
+} gen_alg_parms;
 
 // input/output BOpt data structure
 typedef struct bopt{
@@ -75,13 +92,13 @@ typedef struct sim{
 
     // default constructor
     sim() {
-        method = 2;        // forward euler | 1: backward euler | 2: trap
-        save_voxel = 0;    // save voxel data
-        save_density = 0;  // save density data
-        bootstrap = 0;     // bootstrap
-        time_stepping = 1; // representing with dt/node pair
-        dt = DT[time_stepping];
-        node = NODE[time_stepping];
+        method        = 2;  // forward euler | 1: backward euler | 2: trap
+        save_voxel    = 0;  // save voxel data
+        save_density  = 0;  // save density data
+        bootstrap     = 0;  // bootstrap
+        time_stepping = 1;  // representing with dt/node pair
+        dt            = DT[time_stepping];
+        node          = NODE[time_stepping];
     }
 
     // overload constructor
@@ -90,7 +107,7 @@ typedef struct sim{
           save_density(save_density), bootstrap(bootstrap), 
           time_stepping(time_stepping) {
 
-        dt = DT[time_stepping];
+        dt   = DT[time_stepping];
         node = NODE[time_stepping];
     }
 

@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <cmath>
 #include <fstream>
@@ -8,7 +9,6 @@
 #define EIGEN_USE_BLAS
 #include <Eigen/Dense>
 
-#pragma once
 #ifndef BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
 #define BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
 
@@ -45,7 +45,7 @@ private:
     double y_mean, y_std;                                 // ∈ ℝ         ⊂ scale_data()
 
     // learned parameters
-    double l, sf, sn;
+    double l, sf, sn, nll;
 
 
 public:
@@ -94,8 +94,8 @@ public:
 
     void unscale_data(Eigen::VectorXd& Y_TEST);
 
-    /* model selection */
-    double compute_neg_log_likelihood(double& length, double& sigma, double& noise);
+    /* model selection - compute negative log likelihood */
+    double compute_nll(double& length, double& sigma, double& noise);
     /* description:
         - choice of optimization method
         - model parameters: 
@@ -112,10 +112,6 @@ public:
             - perform model selection
             - or use pre-defined model parameters       
     */
-
-
-
-    
 
     /* inference */
     void predict(Eigen::MatrixXd& X_TEST, char save);
@@ -155,6 +151,8 @@ public:
         Implements sorting algorithm to rank top performers 
         for genetic algorithm. 
     */ 
+
+    void gen_opt(double& l, double& sf, double& sn);
 
     /* accessor functions */
     std::string get_kernel() const;
