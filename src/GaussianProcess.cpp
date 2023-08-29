@@ -13,7 +13,7 @@ GaussianProcess::GaussianProcess() {
     train_scaled   = false;            // flag to indicate if training data has been scaled
     val_scaled     = false;            // flag to indicate if validation data has been scaled
 
-    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/materials_opt/output";
+    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output";
 }
 
 /* overload constructor */
@@ -96,6 +96,7 @@ double GaussianProcess::compute_nll(double& length, double& sigma, double& noise
     kernelGP(x_train, x_train, length, sigma);
     Ky = Cov;
 
+
     // add noise to covariance matrix
     for (int i = 0; i < x_train.rows(); i++){
         Ky(i, i) += noise;
@@ -110,6 +111,7 @@ double GaussianProcess::compute_nll(double& length, double& sigma, double& noise
 
     // Solve for alpha using Cholesky factorization
     alpha = lltOfKy.solve(y_train);
+
     L     = lltOfKy.matrixL();
 
     return -0.5 * (y_train).transpose() * alpha - 0.5 * L.diagonal().array().log().sum();
@@ -145,11 +147,18 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
 
     // function overloading to take into account previously learned parameters 
     trained = true; 
+    scale_data(X_TRAIN, Y_TRAIN);
     
     // unpack model parameters
     l = model_param[0];
     sf = model_param[1];
     sn = model_param[2];
+    
+    nll = compute_nll(l, sf, sn);
+    std::cout << "\nneg_log_likelihood: " << nll << std::endl;
+    std::cout << "   l = " << l << std::endl;
+    std::cout << "   sf = " << sf << std::endl;
+    std::cout << "   sn = " << sn << std::endl;
 
     // compute covariance matrix
     kernelGP(x_train, x_train, l, sf);
@@ -175,7 +184,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
-    std::cout << "--- Training time time: " << duration / 60 << "min ---" << std::endl;
+    std::cout << "--- Training time time: " << duration / 60 << " min ---" << std::endl;
     
 }
 

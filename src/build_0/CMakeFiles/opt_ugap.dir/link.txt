@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/opt_ugap.dir/main.cpp.o CMakeFiles/opt_ugap.dir/helper_functions.cpp.o CMakeFiles/opt_ugap.dir/GaussianProcess.cpp.o CMakeFiles/opt_ugap.dir/Voxel.cpp.o -o opt_ugap  /usr/lib/x86_64-linux-gnu/liblapack.so /usr/lib/x86_64-linux-gnu/libblas.so /usr/lib/x86_64-linux-gnu/libblas.so 
