@@ -25,9 +25,9 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 
-# set(BLAS_LIBRARIES "/usr/lib/x86_64-linux-gnu/libblas.so")
-# set(LAPACK_LIBRARIES "/usr/lib/x86_64-linux-gnu/lapack/liblapack.so")
-# set(Eigen3_DIR "/usr/share/eigen3/cmake")
+set(BLAS_LIBRARIES "/usr/lib/x86_64-linux-gnu/libblas.so")
+set(LAPACK_LIBRARIES "/usr/lib/x86_64-linux-gnu/lapack/liblapack.so")
+set(Eigen3_DIR "/usr/share/eigen3/cmake")
 
 
 find_package(BLAS REQUIRED)

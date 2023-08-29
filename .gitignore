@@ -13,6 +13,7 @@ src/build_6/
 *.csv
 *.vtk
 *.dat
+*.txt
 
 # Ignore mac files
 *.DS_Store

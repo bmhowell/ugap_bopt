@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     s.updateTimeSteppingValues();
 
     // set file path
-    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
-    std::cout << " file_path: " << file_path << std::endl;
-    // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
+    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
+
+    std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     std::vector<double> model_param = {0.99439,0.356547,0.000751229};  // obj -> -133.356
     
     // if available, define model parameters: length, signal variance, noise variance
-    int pre_learned = true; 
+    int pre_learned = false; 
 
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
