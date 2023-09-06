@@ -188,6 +188,21 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     
 }
 
+void GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
+
+    if (!trained){
+        throw std::invalid_argument("Error: train GP before validating");
+        return;
+    }
+
+    // testing: 
+    std::cout << "parameters: " << std::endl;
+    std::cout << "    l: " << l << std::endl;
+    std::cout << "    sf: " << sf << std::endl;
+    std::cout << "    sn: " << sn << std::endl;
+
+
+}
 void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     
     
@@ -250,7 +265,7 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     int pop = 24;                                                   // population size
     int P   = 4;                                                    // number of parents
     int C   = 4;                                                    // number of children
-    int G   = 1000;                                                 // number of generations
+    int G   = 100;                                                  // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
     Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
 
@@ -275,9 +290,6 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     std::vector<double> top_performer; 
     std::vector<double> avg_parent; 
     std::vector<double> avg_total; 
-    std::vector<double> top_length;
-    std::vector<double> top_sigma;
-    std::vector<double> top_noise;     
     for (int g = 0; g < G; ++g){
         
         std::cout << "generation: " << g << std::endl;
@@ -295,9 +307,7 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
         top_performer.push_back(param(0, 3));
         avg_parent.push_back(   param.col(param.cols() - 1).head(P).mean());
         avg_total.push_back(    param.col(param.cols() - 1).mean());
-        top_length.push_back(   param(0, 0));
-        top_sigma.push_back(    param(0, 1));
-        top_noise.push_back(    param(0, 2));
+
         if (g < G - 1){
             // mate the top performing parents
             for (int i = 0; i < P; i+=2){
@@ -323,33 +333,21 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
 
     // store data
     std::cout << "--- storing data ---\n" << std::endl;
-    std::ofstream store_params, store_performance, store_l, store_sf, store_sn; 
-    store_params.open(      file_path + "/params.txt");
-    store_performance.open( file_path + "/performance.txt");
-    store_l.open(           file_path + "/length.txt");
-    store_sf.open(          file_path + "/sigma.txt");
-    store_sn.open(          file_path + "/noise.txt");
-
+    std::ofstream store_params, store_performance; 
+    store_params.open(file_path + "/params.txt");
+    store_performance.open(file_path + "/performance.txt");
 
     // write to file
     store_params      << "length, sigma, noise"                 << std::endl;
     store_performance << "top_performer, avg_parent, avg_total" << std::endl;
     for (int i = 0; i < top_performer.size(); ++i){
         store_performance << top_performer[i] << "," << avg_parent[i] << "," << avg_total[i] << std::endl;
-        store_l           << top_length[i]    << std::endl;
-        store_sf          << top_sigma[i]     << std::endl;
-        store_sn          << top_noise[i]     << std::endl;
-
         if (i < param.rows()){
             store_params << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
         }
     }
     store_params.close();
     store_performance.close();
-    store_l.close();
-    store_sf.close();
-    store_sn.close();
-
     std::cout << "--- data saved ---\n" << std::endl;
 
     // save best parameters to object

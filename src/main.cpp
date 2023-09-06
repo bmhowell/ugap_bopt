@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
     s.updateTimeSteppingValues();
 
     // set file path
-    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
-
-    std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
+    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
+    std::cout << " file_path: " << file_path << std::endl;
+    // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -56,26 +56,37 @@ int main(int argc, char** argv) {
 
 
     // convert data to Eigen matrices
-    Eigen::MatrixXd* x_train = new Eigen::MatrixXd(ndata0, 5);  // ∈ ℝ^(ndata x 5)
-    Eigen::VectorXd* y_train = new Eigen::VectorXd(ndata0);     // ∈ ℝ^(ndata x 1)
+    Eigen::MatrixXd* x_train = new Eigen::MatrixXd;
+    Eigen::VectorXd* y_train = new Eigen::VectorXd;
+    Eigen::MatrixXd* x_val   = new Eigen::MatrixXd; 
+    Eigen::VectorXd* y_val   = new Eigen::VectorXd;
     
-    to_eigen(bopti, x_train, y_train);
+    // to_eigen(bopti, x_train, y_train);
+    build_dataset(bopti, x_train, y_train, x_val, y_val);
+    
     
     // set up gaussian process
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
     // // pre-learned parameters
-    std::vector<double> model_param = {0.99439,0.356547,0.000751229};  // obj -> -133.356
+    std::vector<double> model_param = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
+    // std::vector<double> model_param = {0.994256,0.623914,0.000965578};  // obj_1 -> 422.003 
+    // std::vector<double> model_param = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
     
-    // if available, define model parameters: length, signal variance, noise variance
-    int pre_learned = false; 
+    // if available, define model parameters: length, sigma variance, noise variance
+    bool pre_learned = true; 
+    bool validate    = true; 
 
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
     }else{
         model.train(*x_train, *y_train);
     }
-
+    
+    // validate model
+    if (validate){
+        model.validate(*x_val, *y_val);
+    }
 
     // // generate test vector by uniformly random x_test data for GP
     // int num_test = 25; 
@@ -113,10 +124,7 @@ int main(int argc, char** argv) {
     // // store data
     // store_tot_data(bopti, ndata0, file_path);
     
-    delete y_train;
-    delete x_train;
-    // delete x_test; 
-
+    delete x_train, x_val, y_train, y_val;
     delete bopti;
 
     // Get the current time after the code segment finishes

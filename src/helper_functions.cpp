@@ -103,7 +103,8 @@ void store_tot_data(std::vector<bopt> *bopti, sim& sim_set, int num_sims, std::s
 }
 
 int  read_data(std::vector<bopt> *bopti, std::string file_path){
-    std::ifstream file(file_path + "/tot_bopt.dat");
+    std::ifstream file(file_path + "/tot_bopt.dat"); 
+
     std::string line;
     std::getline(file, line); // skip first line
     int id = 0;
@@ -142,6 +143,53 @@ int  read_data(std::vector<bopt> *bopti, std::string file_path){
     return id; 
 }
 
+void build_dataset(std::vector<bopt>* bopti,
+              Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
+              Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL){
+
+    // split data into training and validation sets
+    int num_data = (*bopti).size();
+    int num_train = 0.8 * num_data;
+    int num_val   = 0.2 * num_data;
+
+    // resize X_TRAIN, Y_TRAIN, X_VAL, and Y_VAL
+    X_TRAIN->resize(num_train, 5);
+    Y_TRAIN->resize(num_train);
+    X_VAL  ->resize(num_val, 5);
+    Y_VAL  ->resize(num_val);
+    
+    // shuffle dataset
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle((*bopti).begin(), (*bopti).end(), g);
+
+    // initialize training and validation sets
+    *X_TRAIN = Eigen::MatrixXd(num_train, 5);
+    *Y_TRAIN = Eigen::VectorXd(num_train);
+    *X_VAL   = Eigen::MatrixXd(num_val, 5);
+    *Y_VAL   = Eigen::VectorXd(num_val);
+
+    // populate training and validation sets
+    for (int i = 0; i < num_train; ++i) {
+        (*X_TRAIN)(i, 0) = (*bopti)[i].temp;
+        (*X_TRAIN)(i, 1) = (*bopti)[i].rp;
+        (*X_TRAIN)(i, 2) = (*bopti)[i].vp;
+        (*X_TRAIN)(i, 3) = (*bopti)[i].uvi;
+        (*X_TRAIN)(i, 4) = (*bopti)[i].uvt;
+        (*Y_TRAIN)(i)    = (*bopti)[i].obj;
+    }
+
+    for (int i = 0; i < num_val; ++i) {
+        (*X_VAL)(i, 0) = (*bopti)[i + num_train].temp;
+        (*X_VAL)(i, 1) = (*bopti)[i + num_train].rp;
+        (*X_VAL)(i, 2) = (*bopti)[i + num_train].vp;
+        (*X_VAL)(i, 3) = (*bopti)[i + num_train].uvi;
+        (*X_VAL)(i, 4) = (*bopti)[i + num_train].uvt;
+        (*Y_VAL)(i)    = (*bopti)[i + num_train].obj;
+    }
+
+}
+                      
 void to_eigen(std::vector<bopt>* data, 
               Eigen::MatrixXd*   X, 
               Eigen::VectorXd*   Y){

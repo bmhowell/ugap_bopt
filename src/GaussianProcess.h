@@ -113,6 +113,9 @@ public:
             - or use pre-defined model parameters       
     */
 
+    /* validation */
+    void validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL);
+
     /* inference */
     void predict(Eigen::MatrixXd& X_TEST, char save);
     /*  Conditioning the GP:
