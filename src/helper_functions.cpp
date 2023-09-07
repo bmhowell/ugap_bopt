@@ -144,13 +144,13 @@ int  read_data(std::vector<bopt> *bopti, std::string file_path){
 }
 
 void build_dataset(std::vector<bopt>* bopti,
-              Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
-              Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL){
+                   Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
+                   Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL){
 
     // split data into training and validation sets
     int num_data = (*bopti).size();
-    int num_train = 0.8 * num_data;
-    int num_val   = 0.2 * num_data;
+    int num_train = 0.9 * num_data;
+    int num_val   = 0.1 * num_data;
 
     // resize X_TRAIN, Y_TRAIN, X_VAL, and Y_VAL
     X_TRAIN->resize(num_train, 5);
@@ -160,7 +160,8 @@ void build_dataset(std::vector<bopt>* bopti,
     
     // shuffle dataset
     std::random_device rd;
-    std::mt19937 g(rd());
+    // std::mt19937 g(rd());
+    std::mt19937 g(47);
     std::shuffle((*bopti).begin(), (*bopti).end(), g);
 
     // initialize training and validation sets
@@ -189,22 +190,11 @@ void build_dataset(std::vector<bopt>* bopti,
     }
 
 }
-                      
-void to_eigen(std::vector<bopt>* data, 
-              Eigen::MatrixXd*   X, 
-              Eigen::VectorXd*   Y){
-    for (int i = 0; i < (*data).size(); ++i) {
-        (*X)(i, 0) = (*data)[i].temp;
-        (*X)(i, 1) = (*data)[i].rp;
-        (*X)(i, 2) = (*data)[i].vp;
-        (*X)(i, 3) = (*data)[i].uvi;
-        (*X)(i, 4) = (*data)[i].uvt;
-        (*Y)(i)    = (*data)[i].obj;
-    }
-}
+
 
 void gen_test_points(constraints&     c, 
                      Eigen::MatrixXd& X){
+
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
     std::mt19937 gen(rd());                                         // Seed the random number generator

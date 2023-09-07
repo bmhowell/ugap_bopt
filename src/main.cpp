@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     constraints c; 
     sim         s;
     s.bootstrap = 0;
-    s.time_stepping = 2;
+    s.time_stepping = 1;
     s.updateTimeSteppingValues();
 
     // set file path
@@ -58,21 +58,29 @@ int main(int argc, char** argv) {
     // convert data to Eigen matrices
     Eigen::MatrixXd* x_train = new Eigen::MatrixXd;
     Eigen::VectorXd* y_train = new Eigen::VectorXd;
-    Eigen::MatrixXd* x_val   = new Eigen::MatrixXd; 
-    Eigen::VectorXd* y_val   = new Eigen::VectorXd;
-    
-    // to_eigen(bopti, x_train, y_train);
-    build_dataset(bopti, x_train, y_train, x_val, y_val);
-    
+    Eigen::MatrixXd* x_test  = new Eigen::MatrixXd; 
+    Eigen::VectorXd* y_test  = new Eigen::VectorXd;
+
+    // split and move data from bopti to corresponding matrices
+    build_dataset(bopti, x_train, y_train, x_test, y_test);
     
     // set up gaussian process
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
     // // pre-learned parameters
-    std::vector<double> model_param = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
-    // std::vector<double> model_param = {0.994256,0.623914,0.000965578};  // obj_1 -> 422.003 
-    // std::vector<double> model_param = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
-    
+    std::vector<double> model_param; 
+    switch (s.time_stepping){
+        case 0: 
+            model_param = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
+            break;
+        case 1: 
+            model_param = {0.994256,0.623914,0.000965578};  // obj_1 -> 422.003 
+            break;
+        case 2:
+            model_param = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
+            break;
+    }
+
     // if available, define model parameters: length, sigma variance, noise variance
     bool pre_learned = true; 
     bool validate    = true; 
@@ -83,9 +91,11 @@ int main(int argc, char** argv) {
         model.train(*x_train, *y_train);
     }
     
-    // validate model
+    // validate or predict
     if (validate){
-        model.validate(*x_val, *y_val);
+        model.validate(*x_test, *y_test);
+    }else{ 
+        model.predict(*x_test);
     }
 
     // // generate test vector by uniformly random x_test data for GP
@@ -124,7 +134,10 @@ int main(int argc, char** argv) {
     // // store data
     // store_tot_data(bopti, ndata0, file_path);
     
-    delete x_train, x_val, y_train, y_val;
+    delete x_train;
+    delete x_test; 
+    delete y_train; 
+    delete y_test; 
     delete bopti;
 
     // Get the current time after the code segment finishes
@@ -132,10 +145,9 @@ int main(int argc, char** argv) {
 
     // Calculate the duration of the code segment in minutes
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
-    std::cout << "Time taken by code segment: " << duration  / 60 << " min" << std::endl;
-
+    std::cout << "\n---Time taken by code segment: " << duration  / 60 << " min---" << std::endl;
     
-    std::cout << "Hello World!" << std::endl;
+    std::cout << "\nHello World!" << std::endl;
 
     return 0;
 }

@@ -16,6 +16,7 @@ GaussianProcess::GaussianProcess() {
     file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output";
 }
 
+
 /* overload constructor */
 GaussianProcess::GaussianProcess(std::string KERNEL, std::string FILE_PATH){
     kernel    = KERNEL;
@@ -23,10 +24,12 @@ GaussianProcess::GaussianProcess(std::string KERNEL, std::string FILE_PATH){
     file_path = FILE_PATH; 
 }
 
+
 /* destructor function */
 GaussianProcess::~GaussianProcess() {
 
 }
+
 
 /* infrastructure functions */
 void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma){
@@ -58,6 +61,7 @@ void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& l
 
 }
 
+
 void GaussianProcess::scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y){
     // scale data to zero mean and unit variance
     //      - l: number of test points
@@ -78,17 +82,20 @@ void GaussianProcess::scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y){
 
 }
 
+
 void GaussianProcess::scale_data(Eigen::MatrixXd& X_TEST) {
     // Scale validation data using mean and standard deviation from training data
     val_scaled = true; 
     x_test = (X_TEST.rowwise() - x_mean.transpose()).array().rowwise() / x_std.transpose().array();
 }
 
+
 void GaussianProcess::unscale_data(Eigen::VectorXd& Y_TEST){
     // map scaled y_test back to original scale
     val_scaled = false;
     y_test = y_test.array() * y_std + y_mean;
 }
+
 
 double GaussianProcess::compute_nll(double& length, double& sigma, double& noise){
     
@@ -137,8 +144,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "--- Parameter tunning/Training time time: " << duration / 60 << "min ---" << std::endl;
     std::cout << "--- Parameter Tuning Complete ---\n" << std::endl;
 
-
 }
+
 
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, 
                             std::vector<double>& model_param){
@@ -180,13 +187,13 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     alpha = lltOfKy.solve(y_train);
     L     = lltOfKy.matrixL();
 
-    scale_data(X_TRAIN, Y_TRAIN);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
     std::cout << "--- Training time time: " << duration / 60 << " min ---" << std::endl;
     
 }
+
 
 void GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
 
@@ -196,14 +203,20 @@ void GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
     }
 
     // testing: 
-    std::cout << "parameters: " << std::endl;
+    std::cout << "\nparameters: " << std::endl;
     std::cout << "    l: " << l << std::endl;
     std::cout << "    sf: " << sf << std::endl;
     std::cout << "    sn: " << sn << std::endl;
 
+    predict(X_VAL); 
+    error_val = (Y_VAL - y_test).norm(); 
+
+    std::cout << "validation err: " << error_val << std::endl;
 
 }
-void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
+
+
+void GaussianProcess::predict(Eigen::MatrixXd& X_TEST){
     
     
     // throw error if training has not occured
@@ -234,6 +247,7 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, char save){
     Cov = Kss - V.transpose() * V;                                    // eq. 2.26   
 
 }
+
 
 void GaussianProcess::sort_data(Eigen::MatrixXd& PARAM){
     // Custom comparator for sorting by the fourth column in descending order
@@ -357,14 +371,17 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     nll  = param(0, 3);  // negative log-likelihood
 }
 
+
 /* accessor functions */
 std::string GaussianProcess::get_kernel() const {
     return kernel;
 };
 
+
 Eigen::MatrixXd& GaussianProcess::get_Cov(){
     return Cov;
 };
+
 
 Eigen::VectorXd& GaussianProcess::get_y_test(){
     return y_test;

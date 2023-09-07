@@ -43,7 +43,8 @@ private:
 
     Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
     double y_mean, y_std;                                 // ∈ ℝ         ⊂ scale_data()
-
+    double error_val;                                     // ∈ ℝ         ⊂ validate()
+    
     // learned parameters
     double l, sf, sn, nll;
 
@@ -117,7 +118,7 @@ public:
     void validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL);
 
     /* inference */
-    void predict(Eigen::MatrixXd& X_TEST, char save);
+    void predict(Eigen::MatrixXd& X_TEST);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points

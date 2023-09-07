@@ -23,7 +23,6 @@ void    build_dataset(std::vector<bopt>* bopti,
                       Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
                       Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL); 
 
-void    to_eigen(std::vector<bopt>* data, Eigen::MatrixXd* X, Eigen::VectorXd* Y);
 
 void    gen_test_points(constraints &c, Eigen::MatrixXd &X); 
 
