@@ -1,6 +1,6 @@
 #include "GaussianProcess.h"
 #include "common.h"
-
+#include <cmath>
 // #include "helper_functions.h"
 // #include "AcquisitionFunction.h"
 
@@ -18,7 +18,8 @@ GaussianProcess::GaussianProcess() {
 
 
 /* overload constructor */
-GaussianProcess::GaussianProcess(std::string KERNEL, std::string FILE_PATH){
+GaussianProcess::GaussianProcess(std::string KERNEL, 
+                                 std::string FILE_PATH){
     kernel    = KERNEL;
     trained   = false;
     file_path = FILE_PATH; 
@@ -97,7 +98,7 @@ void GaussianProcess::unscale_data(Eigen::VectorXd& Y_TEST){
 }
 
 
-double GaussianProcess::compute_nll(double& length, double& sigma, double& noise){
+double GaussianProcess::compute_lml(double& length, double& sigma, double& noise){
     
     // compute covariance matrix
     kernelGP(x_train, x_train, length, sigma);
@@ -124,6 +125,7 @@ double GaussianProcess::compute_nll(double& length, double& sigma, double& noise
     return -0.5 * (y_train).transpose() * alpha - 0.5 * L.diagonal().array().log().sum();
 }
 
+
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "\n--- Training Gaussian Process ---\n" << std::endl;
 
@@ -134,7 +136,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
 
     gen_opt(l, sf, sn);
 
-    std::cout << "\nneg_log_likelihood: " << nll << std::endl;
+    std::cout << "\nlog_marginal_likelihood: " << lml << std::endl;
     std::cout << "    final length: "     << l << std::endl;
     std::cout << "    final sigma:  "     << sf << std::endl;
     std::cout << "    final noise:  "     << sn << std::endl;
@@ -161,11 +163,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     sf = model_param[1];
     sn = model_param[2];
     
-    nll = compute_nll(l, sf, sn);
-    std::cout << "\nneg_log_likelihood: " << nll << std::endl;
-    std::cout << "   l = " << l << std::endl;
-    std::cout << "   sf = " << sf << std::endl;
-    std::cout << "   sn = " << sn << std::endl;
+    lml = compute_lml(l, sf, sn);
+    
 
     // compute covariance matrix
     kernelGP(x_train, x_train, l, sf);
@@ -190,8 +189,12 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
-    std::cout << "--- Training time time: " << duration / 60 << " min ---" << std::endl;
-    
+    std::cout << "--- Training time: " << duration / 60 << " min ---" << std::endl;
+    std::cout << "\nlml: " << lml << std::endl;
+    std::cout << "   l = " << l << std::endl;
+    std::cout << "   sf = " << sf << std::endl;
+    std::cout << "   sn = " << sn << std::endl;
+    std::cout << "--- ----------------- ---: " << std::endl;
 }
 
 
@@ -243,9 +246,15 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST){
 
     // compute variance: V  ∈ ℝ (l x l)
     Eigen::MatrixXd V = Ky.llt().matrixL().solve(Ks);                 // eq. 2.26
-    // Eigen::MatrixXd V = L.solve(Ks);                                  // eq. 2.26
-    Cov = Kss - V.transpose() * V;                                    // eq. 2.26   
 
+    // compute covariances, std, and confidence intervals
+    Cov        = Kss - V.transpose() * V;                             // eq. 2.26   
+    y_test_std = Cov.diagonal().array().sqrt();                       // compute the std from variance
+    y_test_u   = y_test + 2. * y_test_std;                          // upper confidence interval
+    y_test_l   = y_test - 2. * y_test_std;                          // lower confidence interval
+    
+    // confidence level lookup table
+    
 }
 
 
@@ -312,7 +321,7 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
         for (int i = 0; i < pop; ++i){
 
             // compute negative log-likelihood
-            param(i, 3) = compute_nll(param(i, 0), param(i, 1), param(i, 2));
+            param(i, 3) = compute_lml(param(i, 0), param(i, 1), param(i, 2));
         }
 
         sort_data(param);
@@ -368,23 +377,33 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     l    = param(0, 0);  // length scale
     sf   = param(0, 1);  // signal noise variance
     sn   = param(0, 2);  // noise variance
-    nll  = param(0, 3);  // negative log-likelihood
+    lml  = param(0, 3);  // negative log-likelihood
 }
 
 
 /* accessor functions */
-std::string GaussianProcess::get_kernel() const {
-    return kernel;
-};
-
-
-Eigen::MatrixXd& GaussianProcess::get_Cov(){
+Eigen::MatrixXd GaussianProcess::get_Cov(){
     return Cov;
 };
 
 
-Eigen::VectorXd& GaussianProcess::get_y_test(){
+Eigen::VectorXd GaussianProcess::get_y_test(){
     return y_test;
+};
+
+
+Eigen::VectorXd GaussianProcess::get_y_test_std(){
+    return y_test_std;
+};
+
+
+Eigen::VectorXd GaussianProcess::get_y_test_u(){
+    return y_test_u;
+};
+
+
+Eigen::VectorXd GaussianProcess::get_y_test_l(){
+    return y_test_l;
 };
 
 

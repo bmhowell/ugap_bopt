@@ -1,17 +1,6 @@
-#pragma once
-#include <iostream>
-#include <cmath>
-#include <fstream>
-#include <chrono>
-#include <random>
-#include <vector>
-#include <stdexcept>
-#define EIGEN_USE_BLAS
-#include <Eigen/Dense>
-
 #ifndef BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
 #define BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
-
+#include "common.h"
 
 class GaussianProcess {
 
@@ -26,10 +15,8 @@ private:
     //      - l --> number of samples
     //      - m --> number of data points
     //      - n --> number of variables
-    Eigen::MatrixXd m_x_sample_distribution;              // ∈ ℝ (l x m) ⊂ generate_random_points()
-    Eigen::VectorXd m_x_points;                           // ∈ ℝ (m x m) ⊂ unconditionedGP(): -> x_test
     Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l) ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict()
+    Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict();
 
     // vector and matrix for cholesky decomposition
     Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict()
@@ -40,13 +27,18 @@ private:
     Eigen::VectorXd y_train;
     Eigen::MatrixXd x_test; 
     Eigen::VectorXd y_test;
+    Eigen::VectorXd y_test_std;
+    Eigen::VectorXd y_test_u;
+    Eigen::VectorXd y_test_l;  
 
+    // scaling
     Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
     double y_mean, y_std;                                 // ∈ ℝ         ⊂ scale_data()
     double error_val;                                     // ∈ ℝ         ⊂ validate()
     
     // learned parameters
-    double l, sf, sn, nll;
+    double l, sf, sn, lml;
+
 
 
 public:
@@ -96,7 +88,7 @@ public:
     void unscale_data(Eigen::VectorXd& Y_TEST);
 
     /* model selection - compute negative log likelihood */
-    double compute_nll(double& length, double& sigma, double& noise);
+    double compute_lml(double& length, double& sigma, double& noise);
     /* description:
         - choice of optimization method
         - model parameters: 
@@ -107,6 +99,7 @@ public:
            
     /* training */
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
+
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, std::vector<double>& model_param); 
     /* 
         Either: 
@@ -157,19 +150,22 @@ public:
     */ 
 
     void gen_opt(double& l, double& sf, double& sn);
+    /* 
+        Genetic algorithm used for maximization of marginal log likelihood. 
+    */ 
 
     /* accessor functions */
-    std::string get_kernel() const;
 
-    // float get_lengthScale() const;
+    Eigen::MatrixXd get_Cov();
 
-    // float get_signalNoise() const;
+    Eigen::VectorXd get_y_test();
 
-    Eigen::MatrixXd& get_Cov();
+    Eigen::VectorXd get_y_test_std();
 
-    Eigen::VectorXd& get_Mu();
+    Eigen::VectorXd get_y_test_u();
 
-    Eigen::VectorXd& get_y_test();
+    Eigen::VectorXd get_y_test_l();
+
 
 };
 

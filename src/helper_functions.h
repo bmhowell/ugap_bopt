@@ -1,10 +1,8 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
-#pragma once
-
-#include <vector>
-// #include <Eigen/Dense>  // Include necessary Eigen headers
+#include "common.h"
 #include "GaussianProcess.h"
+
 
 // declare functions
 int     find_arg_idx(int argc, char** argv, const char* option); 

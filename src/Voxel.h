@@ -1,14 +1,6 @@
-
-#include <iostream>
-#include <cmath>
-#include <fstream>
-#include <chrono>
-#include <random>
-#include <vector>
-#include <algorithm>
-
 #ifndef UGAPDIFFUSION_VOXEL_H
 #define UGAPDIFFUSION_VOXEL_H
+# include "common.h"
 
 
 class Voxel {

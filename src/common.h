@@ -2,12 +2,16 @@
 #define __COMMON_H__
 #pragma once
 
-#include <Eigen/Dense>
-#include <vector>
-#include <string>
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <string>
 #include <chrono>
+#include <cmath>
+#include <random>
+#include <stdexcept>
+#include <Eigen/Dense>
+#define EIGEN_USE_BLAS
 
 // Program Constants
 // #define TFINAL   30.0

@@ -1,16 +1,6 @@
-#include <iostream>
-#include <random>
-#include <fstream>
-
 #include "GaussianProcess.h"
 #include "Voxel.h"
-#include "common.h"
 #include "helper_functions.h"
-
-/*
-- 
-
-*/
 
 
 int main(int argc, char** argv) {
@@ -35,9 +25,9 @@ int main(int argc, char** argv) {
     s.updateTimeSteppingValues();
 
     // set file path
-    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
-    // std::cout << " file_path: " << file_path << std::endl;
-    std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
+    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
+    std::cout << " file_path: " << file_path << std::endl;
+    // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -85,7 +75,7 @@ int main(int argc, char** argv) {
     }
 
     // if available, define model parameters: length, sigma variance, noise variance
-    bool pre_learned = false; 
+    bool pre_learned = true; 
     bool validate    = true; 
 
     // std::cout << "x_train: \n" << *x_train << std::endl;
@@ -95,13 +85,19 @@ int main(int argc, char** argv) {
     }else{
         model.train(*x_train, *y_train);
     }
-    // std::cout << "---testing---" << std::endl;
-    // // validate or predict
-    // if (validate){
-    //     model.validate(*x_test, *y_test);
-    // }else{ 
-    //     model.predict(*x_test);
-    // }
+    
+    // validate or predict
+    if (validate){
+        model.validate(*x_test, *y_test);
+    }else{ 
+        model.predict(*x_test);
+    }
+    std::cout << "\ncov matrix: \n" << model.get_Cov().block(0, 0, 5, 5) << std::endl;
+    std::cout << std::endl;
+    std::cout << "y_test:     " << model.get_y_test().transpose().head(5) << std::endl;
+    std::cout << "y_test_std: " << model.get_y_test_std().transpose().head(5) << std::endl;
+    std::cout << "y_test_u:   " << model.get_y_test_u().transpose().head(5) << std::endl;
+    std::cout << "y_test_l:   " << model.get_y_test_l().transpose().head(5) << std::endl;
 
     // // generate test vector by uniformly random x_test data for GP
     // int num_test = 25; 
