@@ -31,13 +31,13 @@ int main(int argc, char** argv) {
     constraints c; 
     sim         s;
     s.bootstrap = 0;
-    s.time_stepping = 1;
+    s.time_stepping = 3;
     s.updateTimeSteppingValues();
 
     // set file path
-    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
-    std::cout << " file_path: " << file_path << std::endl;
-    // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
+    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
+    // std::cout << " file_path: " << file_path << std::endl;
+    std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
 
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
@@ -79,24 +79,29 @@ int main(int argc, char** argv) {
         case 2:
             model_param = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
             break;
+        case 3: 
+            model_param = {0.956662, 0.78564, 0.00095118};  // obj_3 -> 487.76 
+            break; 
     }
 
     // if available, define model parameters: length, sigma variance, noise variance
-    bool pre_learned = true; 
+    bool pre_learned = false; 
     bool validate    = true; 
+
+    // std::cout << "x_train: \n" << *x_train << std::endl;
 
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
     }else{
         model.train(*x_train, *y_train);
     }
-    
-    // validate or predict
-    if (validate){
-        model.validate(*x_test, *y_test);
-    }else{ 
-        model.predict(*x_test);
-    }
+    // std::cout << "---testing---" << std::endl;
+    // // validate or predict
+    // if (validate){
+    //     model.validate(*x_test, *y_test);
+    // }else{ 
+    //     model.predict(*x_test);
+    // }
 
     // // generate test vector by uniformly random x_test data for GP
     // int num_test = 25; 

@@ -279,7 +279,7 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     int pop = 24;                                                   // population size
     int P   = 4;                                                    // number of parents
     int C   = 4;                                                    // number of children
-    int G   = 100;                                                  // number of generations
+    int G   = 1000;                                                 // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
     Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
 
@@ -290,9 +290,9 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
 
     // initialize parameter vectors 
     // for time_stepping = 2: 0.988181,0.818414,0.000479554-> 407
-    param(0, 0) = 0.988181;                                         // length scale
-    param(0, 1) = 0.818414;                                         // signal noise variance
-    param(0, 2) = 0.000479554;                                      // noise variance
+    // param(0, 0) = 0.988181;                                         // length scale
+    // param(0, 1) = 0.818414;                                         // signal noise variance
+    // param(0, 2) = 0.000479554;                                      // noise variance
     for (int i = 0; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
