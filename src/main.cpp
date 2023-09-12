@@ -17,11 +17,15 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // if available, define model parameters: length, sigma variance, noise variance
+    bool pre_learned = true; 
+    bool validate    = true; 
+
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
     s.bootstrap = 0;
-    s.time_stepping = 3;
+    s.time_stepping = 2;
     s.updateTimeSteppingValues();
 
     // set file path
@@ -32,7 +36,7 @@ int main(int argc, char** argv) {
     // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
     std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
 
-    // STEP 1: sample data
+    // STEP 1: retrieve data set
     int ndata0;
     if (s.bootstrap == 0){
         ndata0 = read_data(bopti, file_path);
@@ -46,10 +50,16 @@ int main(int argc, char** argv) {
 
 
     // convert data to Eigen matrices
-    Eigen::MatrixXd* x_train = new Eigen::MatrixXd;
-    Eigen::VectorXd* y_train = new Eigen::VectorXd;
-    Eigen::MatrixXd* x_test  = new Eigen::MatrixXd; 
-    Eigen::VectorXd* y_test  = new Eigen::VectorXd;
+    Eigen::MatrixXd* x_train     = new Eigen::MatrixXd;
+    Eigen::VectorXd* y_train     = new Eigen::VectorXd;
+    Eigen::VectorXd* y_train_std = new Eigen::VectorXd;
+
+    Eigen::MatrixXd* x_test      = new Eigen::MatrixXd; 
+    Eigen::VectorXd* y_test      = new Eigen::VectorXd;
+    Eigen::VectorXd* y_test_std  = new Eigen::VectorXd;
+
+    Eigen::MatrixXd* x_total     = new Eigen::MatrixXd;
+    Eigen::VectorXd* y_total     = new Eigen::VectorXd;
 
     // split and move data from bopti to corresponding matrices
     build_dataset(bopti, x_train, y_train, x_test, y_test);
@@ -58,7 +68,7 @@ int main(int argc, char** argv) {
     GaussianProcess model = GaussianProcess("RBF", file_path); 
     
     // // pre-learned parameters
-    std::vector<double> model_param; 
+    std::vector<double> model_param;
     switch (s.time_stepping){
         case 0: 
             model_param = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
@@ -74,12 +84,6 @@ int main(int argc, char** argv) {
             break; 
     }
 
-    // if available, define model parameters: length, sigma variance, noise variance
-    bool pre_learned = true; 
-    bool validate    = true; 
-
-    // std::cout << "x_train: \n" << *x_train << std::endl;
-
     if (pre_learned){
         model.train(*x_train, *y_train, model_param);
     }else{
@@ -90,26 +94,21 @@ int main(int argc, char** argv) {
     if (validate){
         model.validate(*x_test, *y_test);
     }else{ 
-        model.predict(*x_test);
+        model.predict(*x_test, false);
     }
-    std::cout << "\ncov matrix: \n" << model.get_Cov().block(0, 0, 5, 5) << std::endl;
-    std::cout << std::endl;
-    std::cout << "y_test:     " << model.get_y_test().transpose().head(5) << std::endl;
-    std::cout << "y_test_std: " << model.get_y_test_std().transpose().head(5) << std::endl;
-    std::cout << "y_test_u:   " << model.get_y_test_u().transpose().head(5) << std::endl;
-    std::cout << "y_test_l:   " << model.get_y_test_l().transpose().head(5) << std::endl;
-
-    // // generate test vector by uniformly random x_test data for GP
-    // int num_test = 25; 
-    // Eigen::MatrixXd  x_test  = Eigen::MatrixXd(num_test, 5);             // 5 decision variables | 25 test points
-    // gen_test_points(c, x_test);  
-    // model.predict(x_test, 'y');
     
-    // std::cout << "x_test: \n"   << x_test << std::endl; 
-    // std::cout << "\ny_test: \n" << model.get_y_test() << std::endl;
+    // step 2: evaluate uniform points across domain
+    int num_test = 25;
+    *x_test  = Eigen::MatrixXd(num_test, 5);
+    gen_test_points(c, *x_test);
+    model.predict(*x_test, true);
+    *y_test_std = model.get_y_test_std();
+    Eigen::VectorXd y_mean = model.get_y_test();
+    std::cout << "\ny_mean: \n" << y_mean.transpose().head(5) << std::endl;
+    std::cout << " # elements in y_mean: " << y_mean.size() << std::endl;
+    std::cout << "\ny_test_std: \n" << y_test_std->transpose().head(5) << std::endl;
 
-
-
+    
     // int num_sims = 10000; 
     // int ndata    = ndata0; 
 
@@ -139,6 +138,10 @@ int main(int argc, char** argv) {
     delete x_test; 
     delete y_train; 
     delete y_test; 
+    delete y_test_std;
+    delete y_train_std;
+    delete x_total;
+    delete y_total;
     delete bopti;
 
     // Get the current time after the code segment finishes

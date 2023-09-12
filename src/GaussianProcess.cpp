@@ -102,14 +102,15 @@ double GaussianProcess::compute_lml(double& length, double& sigma, double& noise
     
     // compute covariance matrix
     kernelGP(x_train, x_train, length, sigma);
-    Ky = Cov;
-
+    Ky          = Cov; 
 
     // add noise to covariance matrix
     for (int i = 0; i < x_train.rows(); i++){
         Ky(i, i) += noise;
     }
+    y_train_std = Ky.diagonal().array().sqrt();
 
+    
     // Compute Cholesky decomposition of Ky
     Eigen::LLT<Eigen::MatrixXd> lltOfKy(Ky);
     if (lltOfKy.info() == Eigen::NumericalIssue) {
@@ -119,7 +120,6 @@ double GaussianProcess::compute_lml(double& length, double& sigma, double& noise
 
     // Solve for alpha using Cholesky factorization
     alpha = lltOfKy.solve(y_train);
-
     L     = lltOfKy.matrixL();
 
     return -0.5 * (y_train).transpose() * alpha - 0.5 * L.diagonal().array().log().sum();
@@ -134,18 +134,31 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     trained = true; 
     scale_data(X_TRAIN, Y_TRAIN);
 
+    // maximize marginal likelihood 
     gen_opt(l, sf, sn);
 
-    std::cout << "\nlog_marginal_likelihood: " << lml << std::endl;
-    std::cout << "    final length: "     << l << std::endl;
-    std::cout << "    final sigma:  "     << sf << std::endl;
-    std::cout << "    final noise:  "     << sn << std::endl;
+    // compute lml, alpha and L
+    lml = compute_lml(l, sf, sn);
+
+    // compute covariance matrix
+    kernelGP(x_train, x_train, l, sf);
+    Ky          = Cov; 
+
+    // add noise to covariance matrix
+    for (int i = 0; i < x_train.rows(); i++){
+        Ky(i, i) += sn;
+    }
+    y_train_std = Ky.diagonal().array().sqrt();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
     std::cout << "--- Parameter tunning/Training time time: " << duration / 60 << "min ---" << std::endl;
     std::cout << "--- Parameter Tuning Complete ---\n" << std::endl;
-
+    
+    std::cout << "\nlog_marginal_likelihood: " << lml << std::endl;
+    std::cout << "    final length: "     << l << std::endl;
+    std::cout << "    final sigma:  "     << sf << std::endl;
+    std::cout << "    final noise:  "     << sn << std::endl;
 }
 
 
@@ -163,29 +176,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     sf = model_param[1];
     sn = model_param[2];
     
+    // compute lml, alpha and L
     lml = compute_lml(l, sf, sn);
-    
-
-    // compute covariance matrix
-    kernelGP(x_train, x_train, l, sf);
-    Ky = Cov;
-
-    // add noise to covariance matrix
-    for (int i = 0; i < x_train.rows(); i++){
-        Ky(i, i) += sn;
-    }
-
-    // Compute Cholesky decomposition of Ky
-    Eigen::LLT<Eigen::MatrixXd> lltOfKy(Ky);
-    if (lltOfKy.info() == Eigen::NumericalIssue) {
-        // Handle numerical issues with Cholesky decomposition
-        // For example, matrix is not positive definite
-    }
-
-    // Solve for alpha using Cholesky factorization
-    alpha = lltOfKy.solve(y_train);
-    L     = lltOfKy.matrixL();
-
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
@@ -219,14 +211,17 @@ void GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
 }
 
 
-void GaussianProcess::predict(Eigen::MatrixXd& X_TEST){
-    
-    
+void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, bool compute_std){
+    // https://github.com/scikit-learn/scikit-learn/blob/7f9bad99d/sklearn/gaussian_process/_gpr.py#L26
+    // line 433
+
     // throw error if training has not occured
     if (!trained){
         throw std::invalid_argument("Error: train GP before predicting");
         return;
     }
+
+    std::cout << "X_TEST shape: " << X_TEST.rows() << " x " << X_TEST.cols() << std::endl;
 
     scale_data(X_TEST);
 
@@ -234,27 +229,31 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST){
     Eigen::MatrixXd Ks(x_train.rows(), x_test.rows());          // ∈ ℝ (m x l)
     Eigen::MatrixXd Kss(x_test.rows(), x_test.rows());          // ∈ ℝ (l x l))
 
-    // compute required covariance matrices
+    // compute mean y_test ∈ ℝ (l x m) -> see Algorithm 2.1 in Rasmussen & Williams
     kernelGP(x_train, x_test, l, sf);
     Ks = Cov;
-    kernelGP(x_test, x_test, l, sf);
-    Kss = Cov;
-    
-    // compute mean y_test ∈ ℝ (l x m) -> see Algorithm 2.1 in Rasmussen & Williams
     y_test = Ks.transpose() * alpha;                                  // eq. 2.25
     unscale_data(y_test);
 
-    // compute variance: V  ∈ ℝ (l x l)
-    Eigen::MatrixXd V = Ky.llt().matrixL().solve(Ks);                 // eq. 2.26
+    if (compute_std){
+        // compute variance: V  ∈ ℝ (l x l)
+        kernelGP(x_test,  x_test, l, sf);
+        Kss = Cov;
+        V = L.triangularView<Eigen::Lower>().solve(Ks); 
+        Cov = Kss - V.transpose() * V;   
+        y_test_std = Cov.diagonal().array();
 
-    // compute covariances, std, and confidence intervals
-    Cov        = Kss - V.transpose() * V;                             // eq. 2.26   
-    y_test_std = Cov.diagonal().array().sqrt();                       // compute the std from variance
-    y_test_u   = y_test + 2. * y_test_std;                          // upper confidence interval
-    y_test_l   = y_test - 2. * y_test_std;                          // lower confidence interval
-    
-    // confidence level lookup table
-    
+        // check for negative variance bc numerical instability
+        for (int i = 0; i < y_test_std.size(); ++i){
+            if (y_test_std(i) < 0){
+                y_test_std(i) = 0;
+            }
+        }
+
+        // scale y_test by the variance of the training data 
+        y_test_std *= y_std * y_std;
+        y_test_std  = y_test_std.array().sqrt();
+    }
 }
 
 
@@ -298,10 +297,6 @@ void GaussianProcess::gen_opt(double& L, double& SF, double& SN){
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
     // initialize parameter vectors 
-    // for time_stepping = 2: 0.988181,0.818414,0.000479554-> 407
-    // param(0, 0) = 0.988181;                                         // length scale
-    // param(0, 1) = 0.818414;                                         // signal noise variance
-    // param(0, 2) = 0.000479554;                                      // noise variance
     for (int i = 0; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
@@ -392,18 +387,14 @@ Eigen::VectorXd GaussianProcess::get_y_test(){
 };
 
 
+Eigen::VectorXd GaussianProcess::get_y_train_std(){
+    return y_train_std;
+};
+
+
 Eigen::VectorXd GaussianProcess::get_y_test_std(){
     return y_test_std;
 };
 
-
-Eigen::VectorXd GaussianProcess::get_y_test_u(){
-    return y_test_u;
-};
-
-
-Eigen::VectorXd GaussianProcess::get_y_test_l(){
-    return y_test_l;
-};
 
 

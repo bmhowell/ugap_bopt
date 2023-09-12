@@ -19,17 +19,17 @@ private:
     Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict();
 
     // vector and matrix for cholesky decomposition
-    Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict()
-    Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict()
+    Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict() | compute_lml()
+    Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict() | compute_lml()
+    Eigen::MatrixXd V; 
 
     // data
     Eigen::MatrixXd x_train; 
     Eigen::VectorXd y_train;
+    Eigen::VectorXd y_train_std;
     Eigen::MatrixXd x_test; 
     Eigen::VectorXd y_test;
     Eigen::VectorXd y_test_std;
-    Eigen::VectorXd y_test_u;
-    Eigen::VectorXd y_test_l;  
 
     // scaling
     Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
@@ -39,19 +39,8 @@ private:
     // learned parameters
     double l, sf, sn, lml;
 
+    // MEMBER FUNCTIONS
 
-
-public:
-    /* default constructor */
-    GaussianProcess();
-
-    /* overload constructor */
-    GaussianProcess(std::string KERNEL, std::string FILE_PATH);
-
-    /* destructor function */
-    ~GaussianProcess();
-
-    /* optimization functions */
     void kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma);
     /*  description:
      *      kernel construction currently equipped with the following kernels:
@@ -96,8 +85,31 @@ public:
             - signal variance: σ_f^2
             - noise parameter: σ_n^2
     */
+
+    void sort_data(Eigen::MatrixXd& PARAM);
+    /* 
+        Implements sorting algorithm to rank top performers 
+        for genetic algorithm. 
+    */ 
+
+    void gen_opt(double& l, double& sf, double& sn);
+    /* 
+        Genetic algorithm used for maximization of marginal log likelihood. 
+    */ 
+
+
+
+public:
+    /* default constructor */
+    GaussianProcess();
+
+    /* overload constructor */
+    GaussianProcess(std::string KERNEL, std::string FILE_PATH);
+
+    /* destructor function */
+    ~GaussianProcess();
            
-    /* training */
+    /* training functions*/
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
 
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, std::vector<double>& model_param); 
@@ -111,7 +123,7 @@ public:
     void validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL);
 
     /* inference */
-    void predict(Eigen::MatrixXd& X_TEST);
+    void predict(Eigen::MatrixXd& X_TEST, bool compute_std = true);
     /*  Conditioning the GP:
      *
      *    - l: number of sample points
@@ -143,16 +155,6 @@ public:
      *
      */
 
-    void sort_data(Eigen::MatrixXd& PARAM);
-    /* 
-        Implements sorting algorithm to rank top performers 
-        for genetic algorithm. 
-    */ 
-
-    void gen_opt(double& l, double& sf, double& sn);
-    /* 
-        Genetic algorithm used for maximization of marginal log likelihood. 
-    */ 
 
     /* accessor functions */
 
@@ -160,11 +162,9 @@ public:
 
     Eigen::VectorXd get_y_test();
 
+    Eigen::VectorXd get_y_train_std(); 
+
     Eigen::VectorXd get_y_test_std();
-
-    Eigen::VectorXd get_y_test_u();
-
-    Eigen::VectorXd get_y_test_l();
 
 
 };

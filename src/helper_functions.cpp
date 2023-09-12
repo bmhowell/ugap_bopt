@@ -149,9 +149,13 @@ void build_dataset(std::vector<bopt>* bopti,
 
     // split data into training and validation sets
     int num_data = (*bopti).size();
-    int num_train = 0.2 * num_data;
-    std::cout << "num_train: " << num_train << std::endl;
+    int num_train = 0.9 * num_data;
     int num_val   = 0.1 * num_data;
+    std::cout << "\n================ build dataset ================" << std::endl;
+    std::cout << "num_data: " << num_data << std::endl;
+    std::cout << "num_train: " << num_train << std::endl;
+    std::cout << "num_val: " << num_val << std::endl;
+    std::cout << "===============================================\n" << std::endl;
 
     // resize X_TRAIN, Y_TRAIN, X_VAL, and Y_VAL
     X_TRAIN->resize(num_train, 5);
