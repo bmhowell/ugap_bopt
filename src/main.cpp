@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
-    s.bootstrap = 0;
-    s.time_stepping = 2;
+    s.bootstrap = true;
+    s.time_stepping = 0;
     s.updateTimeSteppingValues();
 
     // set file path
@@ -38,14 +38,14 @@ int main(int argc, char** argv) {
 
     // STEP 1: retrieve data set
     int ndata0;
-    if (s.bootstrap == 0){
-        ndata0 = read_data(bopti, file_path);
-    }else{
+    if (s.bootstrap){
         ndata0 = 1000; 
         bootstrap(s, c, bopti, ndata0, file_path);
         
         // store data
         store_tot_data(bopti, s, ndata0, file_path);
+    }else{
+        ndata0 = read_data(bopti, file_path);
     }
 
 

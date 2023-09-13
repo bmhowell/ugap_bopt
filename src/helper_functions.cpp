@@ -1,12 +1,8 @@
-#include <iostream>
-#include <random>
-#include <fstream>
-
+#include "common.h"
 #include "GaussianProcess.h"
 #include "Voxel.h"
-#include "common.h"
 #include "helper_functions.h"  // Include the header file
-
+#include <omp.h>
 
 // Generate data
 double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path) {
@@ -58,6 +54,7 @@ void bootstrap(sim &sim_settings, constraints &c, std::vector<bopt> *bopti, int 
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
     // generate random values
+    #pragma omp parallel for
     for (int id = 0; id < num_sims; ++id) {
         bopt b; 
         b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
@@ -73,6 +70,7 @@ void bootstrap(sim &sim_settings, constraints &c, std::vector<bopt> *bopti, int 
         // write individual data to file (prevent accidental loss of data if stopped early)
         write_to_file(b, sim_settings, id, file_path); 
 
+        #pragma omp critical
         bopti->push_back(b); 
     }
 }

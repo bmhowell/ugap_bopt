@@ -84,7 +84,7 @@ typedef struct sim{
     int method;         // simulation method
     int save_voxel;     // save voxel data
     int save_density;   // save density data
-    int bootstrap;      // bootstrap
+    bool bootstrap;     // bootstrap
     int time_stepping;  // representing with dt/node pair
 
     static constexpr double DT[7]   = {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5};
@@ -96,11 +96,11 @@ typedef struct sim{
 
     // default constructor
     sim() {
-        method        = 2;  // forward euler | 1: backward euler | 2: trap
-        save_voxel    = 0;  // save voxel data
-        save_density  = 0;  // save density data
-        bootstrap     = 0;  // bootstrap
-        time_stepping = 1;  // representing with dt/node pair
+        method        = 2;      // forward euler | 1: backward euler | 2: trap
+        save_voxel    = 0;      // save voxel data
+        save_density  = 0;      // save density data
+        bootstrap     = false;  // bootstrap
+        time_stepping = 1;      // representing with dt/node pair
         dt            = DT[time_stepping];
         node          = NODE[time_stepping];
     }
