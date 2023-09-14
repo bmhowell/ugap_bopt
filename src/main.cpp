@@ -29,8 +29,8 @@ int main(int argc, char** argv) {
     s.updateTimeSteppingValues();
 
     // set file path
-    // std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
-    std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
+    std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
+    // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
     std::cout << "--- THE ADVENTURE BEGINS ---" << std::endl;
     std::cout << "num cores: "  << omp_get_num_procs() << std::endl;
     std::cout << " file_path: " << file_path           << std::endl;
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     int ndata0;
     bool multi_thread = true; 
     if (s.bootstrap){
-        ndata0 = 1000; 
+        ndata0 = 100; 
         bootstrap(s, c, bopti, ndata0, file_path, multi_thread);
         
         // store data

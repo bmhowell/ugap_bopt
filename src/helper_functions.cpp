@@ -5,7 +5,14 @@
 
 
 // Generate data
-double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path, bool multi_thread) {
+double gen_data(float tfinal, 
+                double dt, 
+                int node, 
+                int idsim, 
+                bopt& bopti, 
+                sim& simi, 
+                std::string file_path, 
+                bool multi_thread) {
 
     // // objective function value
     // float obj  = bopti.obj;
@@ -60,21 +67,27 @@ void bootstrap(sim &sim_settings,
                std::string file_path, 
                bool multi_thread) {
 
-    // initialize input variables
-    std::random_device rd;                                          // Obtain a random seed from the hardware
-    std::mt19937 gen(rd());                                         // Seed the random number generator
-    std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
-
     // generate random values
     if (multi_thread){
+        // initialize input variables
+        std::vector<std::mt19937> gens(num_sims);  // Create an array of generators
+        std::vector<std::uniform_real_distribution<double>> distributions(num_sims);  // Create an array of distributions
+
+        // Seed each generator
+        for (int id = 0; id < num_sims; ++id) {
+            std::random_device rd;
+            gens[id].seed(rd());
+            distributions[id] = std::uniform_real_distribution<double>(0.0, 1.0);
+        }
+
         #pragma omp parallel for
         for (int id = 0; id < num_sims; ++id) {
             bopt b; 
-            b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
-            b.rp   = (c.max_rp   - c.min_rp)   * distribution(gen) +  c.min_rp;
-            b.vp   = (c.max_vp   - c.min_vp)   * distribution(gen) +  c.min_vp;
-            b.uvi  = (c.max_uvi  - c.min_uvi)  * distribution(gen) +  c.min_uvi;
-            b.uvt  = (c.max_uvt  - c.min_uvt)  * distribution(gen) +  c.min_uvt;
+            b.temp = (c.max_temp - c.min_temp) * distributions[id](gens[id]) +  c.min_temp;
+            b.rp   = (c.max_rp   - c.min_rp)   * distributions[id](gens[id]) +  c.min_rp;
+            b.vp   = (c.max_vp   - c.min_vp)   * distributions[id](gens[id]) +  c.min_vp;
+            b.uvi  = (c.max_uvi  - c.min_uvi)  * distributions[id](gens[id]) +  c.min_uvi;
+            b.uvt  = (c.max_uvt  - c.min_uvt)  * distributions[id](gens[id]) +  c.min_uvt;
 
             // peform simulation with randomly generatored values
             b.obj = gen_data(sim_settings.tfinal, sim_settings.dt, sim_settings.node, id, b, sim_settings, file_path, true);
@@ -91,6 +104,10 @@ void bootstrap(sim &sim_settings,
             }
         }
     }else{
+        // initialize input variables
+        std::random_device rd;                                          // Obtain a random seed from the hardware
+        std::mt19937 gen(rd());                                         // Seed the random number generator
+        std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
         for (int id = 0; id < num_sims; ++id) {
             bopt b; 
             b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
