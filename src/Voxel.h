@@ -144,7 +144,7 @@ public:
     bool      multi_thread; 
 
     /* overload constructor */
-    Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULT_THREAD);
+    Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULTI_THREAD);
 
     /* destructor */
     ~Voxel();

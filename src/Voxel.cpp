@@ -2,7 +2,7 @@
 
 // tfinal, dt, node, idsim, temp, rp, vp, uvi, uvt
 
-Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULT_THREAD){
+Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULTI_THREAD){
 
     // MEMBER VARIABLES
     // representative volume element RVE simulation parameters
@@ -15,8 +15,8 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     uvt     = UVT;                                              // |    s    | uv exposure time
     obj     = 1000.;                                            // |   ---   |  objective function
 
-    multi_thread = MULT_THREAD;                                 // |   ---   |  multi-threading flag
-    std::cout << " multi_thread: " << multi_thread << std::endl;
+    multi_thread = MULTI_THREAD;
+    
     // set file path
     file_path = FILE_PATH;                                      // |   ---   |  file path
 

@@ -83,9 +83,12 @@ void bootstrap(sim &sim_settings,
 
             // write individual data to file (prevent accidental loss of data if stopped early)
             write_to_file(b, sim_settings, id, file_path); 
-
             #pragma omp critical
-            bopti->push_back(b); 
+            {
+                int thread_id = omp_get_thread_num();
+                bopti->push_back(b);
+                std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
+            }
         }
     }else{
         for (int id = 0; id < num_sims; ++id) {

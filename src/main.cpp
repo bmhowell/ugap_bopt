@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
     // STEP 1: retrieve data set
     int ndata0;
-    bool multi_thread = false; 
+    bool multi_thread = true; 
     if (s.bootstrap){
         ndata0 = 1000; 
         bootstrap(s, c, bopti, ndata0, file_path, multi_thread);
