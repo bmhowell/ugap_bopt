@@ -8,6 +8,12 @@ src/build_4/
 src/build_5/
 src/build_6/
 
+output_0/
+output_1/
+output_2/
+output_3/
+output_4/
+
 # Ignore log and data files
 *.log
 *.csv

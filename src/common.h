@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <Eigen/Dense>
 #define EIGEN_USE_BLAS
+#include <omp.h>
 
 // Program Constants
 // #define TFINAL   30.0

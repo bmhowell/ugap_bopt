@@ -2,22 +2,24 @@
 #include "GaussianProcess.h"
 #include "Voxel.h"
 #include "helper_functions.h"  // Include the header file
-#include <omp.h>
+
 
 // Generate data
-double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path) {
+double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& simi, std::string file_path, bool multi_thread) {
 
     // // objective function value
     // float obj  = bopti.obj;
 
-    std::cout << "================ begin simulation ================" << std::endl;
-    std::cout << "id sim: " << idsim       << std::endl;
-    std::cout << "temp: "   << bopti.temp  << std::endl;
-    std::cout << "rp: "     << bopti.rp    << std::endl;
-    std::cout << "vp: "     << bopti.vp    << std::endl;
-    std::cout << "uvi: "    << bopti.uvi   << std::endl;
-    std::cout << "uvt: "    << bopti.uvt   << std::endl;
-    std::cout                              << std::endl;
+    if (!multi_thread){
+        std::cout << "================ begin simulation ================" << std::endl;
+        std::cout << "id sim: " << idsim       << std::endl;
+        std::cout << "temp: "   << bopti.temp  << std::endl;
+        std::cout << "rp: "     << bopti.rp    << std::endl;
+        std::cout << "vp: "     << bopti.vp    << std::endl;
+        std::cout << "uvi: "    << bopti.uvi   << std::endl;
+        std::cout << "uvt: "    << bopti.uvt   << std::endl;
+        std::cout                              << std::endl;
+    }
     
     // run simulation
     auto start = std::chrono::high_resolution_clock::now();
@@ -28,7 +30,8 @@ double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& 
                         bopti.temp,  
                         bopti.uvi, 
                         bopti.uvt, 
-                        file_path);
+                        file_path, 
+                        multi_thread);
 
     VoxelSystem1.ComputeParticles(bopti.rp, bopti.vp);
     if (simi.save_density == 1){
@@ -40,13 +43,22 @@ double gen_data(float tfinal, double dt, int node, int idsim, bopt& bopti, sim& 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
 
-    std::cout << " --- Simulation time: " << duration / 60 << "min ---" << std::endl;
-    std::cout << "testing obj: " << VoxelSystem1.obj << std::endl;
+    if (!multi_thread){
+        std::cout << " --- Simulation time: " << duration / 60 << "min ---" << std::endl;
+        std::cout << "testing obj: " << VoxelSystem1.obj << std::endl;
+    }else{
+        std::cout << "---sim " << idsim << " complete ----" << std::endl;
+    }
     return VoxelSystem1.obj; 
 }
 
 // initialize input variables
-void bootstrap(sim &sim_settings, constraints &c, std::vector<bopt> *bopti, int num_sims, std::string file_path) {
+void bootstrap(sim &sim_settings, 
+               constraints &c, 
+               std::vector<bopt> *bopti, 
+               int num_sims, 
+               std::string file_path, 
+               bool multi_thread) {
 
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
@@ -54,24 +66,46 @@ void bootstrap(sim &sim_settings, constraints &c, std::vector<bopt> *bopti, int 
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
     // generate random values
-    #pragma omp parallel for
-    for (int id = 0; id < num_sims; ++id) {
-        bopt b; 
-        b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
-        b.rp   = (c.max_rp   - c.min_rp)   * distribution(gen) +  c.min_rp;
-        b.vp   = (c.max_vp   - c.min_vp)   * distribution(gen) +  c.min_vp;
-        b.uvi  = (c.max_uvi  - c.min_uvi)  * distribution(gen) +  c.min_uvi;
-        b.uvt  = (c.max_uvt  - c.min_uvt)  * distribution(gen) +  c.min_uvt;
+    if (multi_thread){
+        #pragma omp parallel for
+        for (int id = 0; id < num_sims; ++id) {
+            bopt b; 
+            b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
+            b.rp   = (c.max_rp   - c.min_rp)   * distribution(gen) +  c.min_rp;
+            b.vp   = (c.max_vp   - c.min_vp)   * distribution(gen) +  c.min_vp;
+            b.uvi  = (c.max_uvi  - c.min_uvi)  * distribution(gen) +  c.min_uvi;
+            b.uvt  = (c.max_uvt  - c.min_uvt)  * distribution(gen) +  c.min_uvt;
 
-        // peform simulation with randomly generatored values
-        b.obj = gen_data(sim_settings.tfinal, sim_settings.dt, sim_settings.node, id, b, sim_settings, file_path);
-        std::cout << "b.obj: " << b.obj << std::endl;
-        std::cout << std::endl; 
-        // write individual data to file (prevent accidental loss of data if stopped early)
-        write_to_file(b, sim_settings, id, file_path); 
+            // peform simulation with randomly generatored values
+            b.obj = gen_data(sim_settings.tfinal, sim_settings.dt, sim_settings.node, id, b, sim_settings, file_path, true);
+            std::cout << "b.obj: " << b.obj << std::endl;
+            std::cout << "---  ------- ---\n" << std::endl;
 
-        #pragma omp critical
-        bopti->push_back(b); 
+            // write individual data to file (prevent accidental loss of data if stopped early)
+            write_to_file(b, sim_settings, id, file_path); 
+
+            #pragma omp critical
+            bopti->push_back(b); 
+        }
+    }else{
+        for (int id = 0; id < num_sims; ++id) {
+            bopt b; 
+            b.temp = (c.max_temp - c.min_temp) * distribution(gen) +  c.min_temp;
+            b.rp   = (c.max_rp   - c.min_rp)   * distribution(gen) +  c.min_rp;
+            b.vp   = (c.max_vp   - c.min_vp)   * distribution(gen) +  c.min_vp;
+            b.uvi  = (c.max_uvi  - c.min_uvi)  * distribution(gen) +  c.min_uvi;
+            b.uvt  = (c.max_uvt  - c.min_uvt)  * distribution(gen) +  c.min_uvt;
+
+            // peform simulation with randomly generatored values
+            b.obj = gen_data(sim_settings.tfinal, sim_settings.dt, sim_settings.node, id, b, sim_settings, file_path, false);
+            std::cout << "b.obj: " << b.obj << std::endl;
+            std::cout << "---  ------- ---\n" << std::endl;
+
+            // write individual data to file (prevent accidental loss of data if stopped early)
+            write_to_file(b, sim_settings, id, file_path); 
+
+            bopti->push_back(b); 
+        }
     }
 }
 

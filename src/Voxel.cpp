@@ -2,7 +2,7 @@
 
 // tfinal, dt, node, idsim, temp, rp, vp, uvi, uvt
 
-Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH){
+Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULT_THREAD){
 
     // MEMBER VARIABLES
     // representative volume element RVE simulation parameters
@@ -15,6 +15,8 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     uvt     = UVT;                                              // |    s    | uv exposure time
     obj     = 1000.;                                            // |   ---   |  objective function
 
+    multi_thread = MULT_THREAD;                                 // |   ---   |  multi-threading flag
+    std::cout << " multi_thread: " << multi_thread << std::endl;
     // set file path
     file_path = FILE_PATH;                                      // |   ---   |  file path
 
@@ -146,13 +148,14 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     std::fill_n(std::back_inserter(k_p),           N_VOL_NODES, k_P0);
     std::fill_n(std::back_inserter(k_i),           N_VOL_NODES, k_I0);
 
-    std::cout << "==================================" << std::endl;
-
-    std::cout << "Initial concentrations (mol/m^3): " << std::endl;
-    std::cout << "c_M0: "  << c_M0   << std::endl;
-    std::cout << "c_PI0: " << c_PI0  << std::endl;
-    std::cout << "theta0 " << theta0 << std::endl;
-    std::cout << "==================================\n" << std::endl;
+    if (!multi_thread){
+        std::cout << "==================================" << std::endl;
+        std::cout << "Initial concentrations (mol/m^3): " << std::endl;
+        std::cout << "c_M0: "  << c_M0   << std::endl;
+        std::cout << "c_PI0: " << c_PI0  << std::endl;
+        std::cout << "theta0 " << theta0 << std::endl;
+        std::cout << "==================================\n" << std::endl;
+    }
 
     // initialize system
     current_coords[0] = 0;
@@ -212,11 +215,13 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
     rp = radius_1;
     vp = solids_loading; 
 
-    std::cout << "\n--------- ------- ---------" << std::endl;
-    std::cout << "--- GENERATING PARTICLES ---" << std::endl;
-    std::cout << "--------- ------- ---------" << std::endl;
-    int counter1 = 0;
+    if (!multi_thread){
+        std::cout << "\n--------- ------- ---------" << std::endl;
+        std::cout << "--- GENERATING PARTICLES ---" << std::endl;
+        std::cout << "--------- ------- ---------" << std::endl;
+    }
     
+    int counter1 = 0;
     int particle_coords[3] = {0, 0, 0}; 
     int tot_part_nodes = 0; 
     while ((tot_part_nodes < n_particle_nodes) and (counter1 < 10000000)){
@@ -306,19 +311,21 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         if (counter1 >= 10000000){
             std::cout << "--- PARTICLE ITERATION THRESHOLD ---" << std::endl;
         }
-        if (tot_part_nodes >= n_particle_nodes){
+        if (tot_part_nodes >= n_particle_nodes & !multi_thread){
             std::cout << "N_VOL_NODES: "    << N_VOL_NODES                          << std::endl;
             std::cout << "tot_part_nodes: " << tot_part_nodes                       << std::endl;
             std::cout << "solids loading: " << (1.0 * tot_part_nodes / N_VOL_NODES) << std::endl;
         }
     }
 
-    std::cout << "-------------------------------------------"                          << std::endl;
-    std::cout << "number of particles generated: "  << counter1                         << std::endl;
-    std::cout << "solids loading: "                 << n_particle_nodes / N_VOL_NODES   << std::endl;
-    std::cout << "n_particle_nodes: "               << n_particle_nodes                 << std::endl;
-    std::cout << "particles_ind.size(): "           << particles_ind.size()             << std::endl;
-    std::cout << "-------------------------------------------"                          << std::endl;
+    if (!multi_thread){
+        std::cout << "-------------------------------------------"                          << std::endl;
+        std::cout << "number of particles generated: "  << counter1                         << std::endl;
+        std::cout << "solids loading: "                 << n_particle_nodes / N_VOL_NODES   << std::endl;
+        std::cout << "n_particle_nodes: "               << n_particle_nodes                 << std::endl;
+        std::cout << "particles_ind.size(): "           << particles_ind.size()             << std::endl;
+        std::cout << "-------------------------------------------"                          << std::endl;
+    }
 }
 
 
@@ -1476,19 +1483,21 @@ void Voxel::Simulate(int method, int save_voxel){
     int print_iter   = N_TIME_STEPS / 600; 
     std::vector<double> total_time(N_TIME_STEPS, 0);
 
-    std::cout << "=================================="                                     << std::endl;
-    std::cout << "Simulation parameters"                                                  << std::endl;
-    std::cout << "sim_id: "               << sim_id                                       << std::endl;
-    std::cout << "Total time: "           << t_final                                      << std::endl;
-    std::cout << "Number of time steps: " << N_TIME_STEPS                                 << std::endl;
-    std::cout << "Print iteration: "      << print_iter                                   << std::endl;
-    std::cout << "=================================="                                     << std::endl;
-    std::cout << "Numerical parameters"                                                   << std::endl;
-    std::cout << "h: "   << h                                                             << std::endl;
-    std::cout << "dt: "  << dt                                                            << std::endl;
-    std::cout << "Diffusion CFL: "   << Dm0 * dt / h / h                                  << std::endl;
-    std::cout << "Thermal CFL: "     << dt * K_thermal_shanna/ h / h / rho_UGAP / Cp_nacl << std::endl;
-    std::cout << "\n=================================="                                   << std::endl;
+    if (!multi_thread){
+        std::cout << "=================================="                                     << std::endl;
+        std::cout << "Simulation parameters"                                                  << std::endl;
+        std::cout << "sim_id: "               << sim_id                                       << std::endl;
+        std::cout << "Total time: "           << t_final                                      << std::endl;
+        std::cout << "Number of time steps: " << N_TIME_STEPS                                 << std::endl;
+        std::cout << "Print iteration: "      << print_iter                                   << std::endl;
+        std::cout << "=================================="                                     << std::endl;
+        std::cout << "Numerical parameters"                                                   << std::endl;
+        std::cout << "h: "   << h                                                             << std::endl;
+        std::cout << "dt: "  << dt                                                            << std::endl;
+        std::cout << "Diffusion CFL: "   << Dm0 * dt / h / h                                  << std::endl;
+        std::cout << "Thermal CFL: "     << dt * K_thermal_shanna/ h / h / rho_UGAP / Cp_nacl << std::endl;
+        std::cout << "\n=================================="                                   << std::endl;
+    }
 
     Config2File(dt); 
 
@@ -1549,7 +1558,7 @@ void Voxel::Simulate(int method, int save_voxel){
 
         // display time
         timer += dt;
-        if ((t + 1) % 100 == 0){
+        if ((t + 1) % 100 == 0 && !multi_thread){
             std::cout << "time: "      << timer << " / " << t_final                       << std::endl;
             std::cout << "iteration: " << t + 1 << " / " << N_TIME_STEPS + 1 << std::endl << std::endl;
         }
@@ -1599,11 +1608,15 @@ void Voxel::Simulate(int method, int save_voxel){
     // compute weighted multi objective function
     obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
     
-    std::cout << "--- SIMULATION COMPLETE ---" << std::endl;
-    std::cout << "obj = " << obj    << std::endl;
-    std::cout << "temp: " << theta0 << std::endl; 
-    std::cout << "uvt: " << uvt     << std::endl; 
-    std::cout << "I0: " << I0       << std::endl;
-    std::cout << "rp: " << rp       << std::endl;
-    std::cout << "vp: " << vp       << std::endl;
+    if (!multi_thread){
+        std::cout << "==================================" << std::endl;
+        std::cout << "Simulation complete"                << std::endl;
+        std::cout << "==================================" << std::endl;
+        std::cout << "obj = " << obj                      << std::endl;
+        std::cout << "temp: " << theta0                   << std::endl; 
+        std::cout << "uvt: " << uvt                       << std::endl; 
+        std::cout << "I0: " << I0                         << std::endl;
+        std::cout << "rp: " << rp                         << std::endl;
+        std::cout << "vp: " << vp                         << std::endl;
+    }
 }
