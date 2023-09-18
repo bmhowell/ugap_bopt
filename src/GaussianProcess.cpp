@@ -396,5 +396,21 @@ Eigen::VectorXd GaussianProcess::get_y_test_std(){
     return y_test_std;
 };
 
+std::vector<int> GaussianProcess::get_candidates(){
+
+    Eigen::VectorXd y_tot     = Eigen::VectorXd::Zero(y_train.size() + y_test.size());
+    Eigen::VectorXd y_tot_std = Eigen::VectorXd::Zero(y_train.size() + y_test.size());
+    Eigen::VectorXd y_max     = Eigen::VectorXd::Zero(y_train.size() + y_test.size());
+
+    y_tot << y_train, y_test;
+    y_tot_std << y_train_std, y_test_std;
+    
+    // compute upper bound confidence interval
+    y_max = y_tot + 1.96 * y_tot_std;     
+
+
+
+    return candidates;
+}
 
 

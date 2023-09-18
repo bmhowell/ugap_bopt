@@ -12,6 +12,8 @@ add_executable(opt_ugap
               helper_functions.h
               GaussianProcess.cpp
               GaussianProcess.h
+              BayesianOpt.cpp
+              BayesianOpt.h
               Voxel.cpp
               Voxel.h
        )

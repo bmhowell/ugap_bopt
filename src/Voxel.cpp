@@ -224,7 +224,7 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
     int counter1 = 0;
     int particle_coords[3] = {0, 0, 0}; 
     int tot_part_nodes = 0; 
-    while ((tot_part_nodes < n_particle_nodes) and (counter1 < 10000000)){
+    while ((tot_part_nodes < n_particle_nodes) && (counter1 < 10000000)){
         // step 1: choose random node as particle
         // https://stackoverflow.com/questions/19665818/generate-random-numbers-using-c11-random-library
         std::random_device rd{};
@@ -311,7 +311,7 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         if (counter1 >= 10000000){
             std::cout << "--- PARTICLE ITERATION THRESHOLD ---" << std::endl;
         }
-        if (tot_part_nodes >= n_particle_nodes & !multi_thread){
+        if (tot_part_nodes >= n_particle_nodes && !multi_thread){
             std::cout << "N_VOL_NODES: "    << N_VOL_NODES                          << std::endl;
             std::cout << "tot_part_nodes: " << tot_part_nodes                       << std::endl;
             std::cout << "solids loading: " << (1.0 * tot_part_nodes / N_VOL_NODES) << std::endl;
@@ -359,20 +359,14 @@ void Voxel::ComputeRxnRateConstants() {
             // bowman (1) equation 24
             f_free_volume[i] = 0.025 + alpha_M*phi_M*(theta[i]-theta_gM) + alpha_P*phi_P*(theta[i]-theta_gP);
 
-            // compute temperature dependent rate constants
-            // bowman (1) equation 17
+            // compute temperature dependent rate constants | bowman (1) equation 17
             k_p[i] = k_P0*exp(-E_P / Rg / theta[i]) / (1 + exp(A_Dp * (1/f_free_volume[i] - 1/f_cp)));
-            // k_p[i] = k_P0 / (1 + exp(A_Dp * (1/f_free_volume[i] - 1/f_cp)));
-            // k_i[i] = k_I0*exp(-E_I / Rg / theta[i]) / (1 + exp(A_I  * (1/f_free_volume[i] - 1/f_ci)));
             k_i[i] = k_I0; 
-            // k_i[i] = k_I0; // / (1 + exp(A_I  * (1/f_free_volume[i] - 1/f_ci))); // taki method 
 
             // bowman (1) equation 18
-
             k_tr   = R_rd * k_p[i] * c_M[i];
             denom  = (k_tr / (k_T0*exp(-E_T/Rg/theta[i])) + exp(-A_Dt*(1/f_free_volume[i] - 1/f_ct)));
             k_t[i] = k_T0*exp(-E_T/Rg/theta[i]) / (1+1/denom);
-            // k_t[i] = k_T0 / (1 + 1 / (R_rd * k_p[i] * c_M[i] / (k_T0) + exp(-A_Dt*(1/f_free_volume[i] - 1/f_ct))));
             
 
         }else{

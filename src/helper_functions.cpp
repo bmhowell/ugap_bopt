@@ -266,3 +266,124 @@ void gen_test_points(constraints&     c,
     }
 
 }
+
+
+void train_prior(GaussianProcess &MODEL, 
+                 Eigen::MatrixXd &X_TRAIN, 
+                 Eigen::VectorXd &Y_TRAIN,
+                 std::vector<double> &M_PARAMS, 
+                 int TIME_STEPPING, 
+                 bool pre_learned){
+    if (pre_learned){
+        switch (TIME_STEPPING){
+            case 0: 
+                M_PARAMS = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
+                break;
+            case 1: 
+                M_PARAMS = {0.994256,0.623914,0.000965578};  // obj_1 -> 422.003 
+                break;
+            case 2:
+                M_PARAMS = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
+                break;
+            case 3: 
+                M_PARAMS = {0.956662, 0.78564, 0.00095118};  // obj_3 -> 487.76 
+                break; 
+        }
+        MODEL.train(X_TRAIN, Y_TRAIN, M_PARAMS);
+    }
+    else{
+        MODEL.train(X_TRAIN, Y_TRAIN);
+    }
+}
+
+
+void evaluate_model(GaussianProcess &MODEL, 
+                    Eigen::MatrixXd &X_TEST,
+                    Eigen::VectorXd &Y_TEST, 
+                    bool VALIDATE){
+
+    if (VALIDATE){
+        std::cout << "--- model validation ---\n" << std::endl;
+        MODEL.validate(X_TEST, Y_TEST);
+        std::cout << "--- ---------------- ---\n" << std::endl;
+    }
+    else{
+        std::cout << "--- model prediction ---\n" << std::endl;
+        MODEL.predict(X_TEST, false);
+        std::cout << "--- ---------------- ---\n" << std::endl;
+    }
+}
+
+void sample_posterior(GaussianProcess &MODEL, 
+                      Eigen::MatrixXd &X_SAMPLE, 
+                      Eigen::VectorXd &Y_SAMPLE_MEAN, 
+                      Eigen::VectorXd &Y_SAMPLE_STD,
+                      constraints &C){
+
+    // generate test points
+    gen_test_points(C, X_SAMPLE);
+    MODEL.predict(X_SAMPLE, true);
+    
+    Y_SAMPLE_MEAN = MODEL.get_y_test();
+    Y_SAMPLE_STD  = MODEL.get_y_test_std();
+
+}
+
+void acq_ucb(GaussianProcess &MODEL, 
+             Eigen::MatrixXd &X_SAMPLE, 
+             Eigen::VectorXd &Y_SAMPLE_MEAN, 
+             Eigen::VectorXd &Y_SAMPLE_STD, 
+             bool MAXIMIZE){
+    if (MAXIMIZE){
+        Eigen::MatrixXd ucb = Y_SAMPLE_MEAN + 1.96 * Y_SAMPLE_STD;
+        std::cout << "\n================ acq_ucb ================" << std::endl;
+        std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
+        std::cout << "ucb: \n" << ucb.transpose() << std::endl;
+        std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl;
+
+        
+        std::cout << "==========================================\n" << std::endl;
+    }
+    else{
+        Eigen::MatrixXd lcb = Y_SAMPLE_MEAN - 1.96 * Y_SAMPLE_STD;
+        std::cout << "\n================ acq_ucb ================" << std::endl;
+        std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
+        std::cout << "lcb: \n" << lcb.transpose() << std::endl;
+        std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl; 
+
+        // sort data in ascending order according to Y_SAMPLE MEAN
+        Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(Y_SAMPLE_MEAN.size(), 0, Y_SAMPLE_MEAN.size() - 1);
+        std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
+                  [&Y_SAMPLE_MEAN](int a, int b) { return Y_SAMPLE_MEAN(a) < Y_SAMPLE_MEAN(b); });
+
+        Eigen::VectorXd y_sample_mean_sorted = Y_SAMPLE_MEAN(sorted_inds);
+        Eigen::MatrixXd x_sample_sorted     = X_SAMPLE(sorted_inds, Eigen::all);
+
+        std::cout << "y_sample_mean: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
+        std::cout << "y_sample_mean_sorted: \n" << y_sample_mean_sorted.transpose() << std::endl;
+        
+        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl;
+        std::cout << "sorted_data: \n" << x_sample_sorted << std::endl;
+
+
+        // // sort in ascending order
+        // Eigen::VectorXd sorted_y_mean = Y_SAMPLE_MEAN;
+        // Eigen::VectorXi permutation_indices = Eigen::VectorXi::LinSpaced(sorted_y_mean.size(), 0, sorted_y_mean.size() - 1);
+
+        // std::sort(permutation_indices.data(), permutation_indices.data() + permutation_indices.size(),
+        //           [&sorted_y_mean](int i1, int i2) {return sorted_y_mean(i1) < sorted_y_mean(i2);});
+        // std::sort(sorted_y_mean.data(), sorted_y_mean.data() + sorted_y_mean.size());
+
+        // // create an Eigen::PermutationMatrix for rearranging X_TRAIN
+        // Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(sorted_y_mean.size());
+        // perm.indices() = permutation_indices;
+
+        // // rearange X_TRAIN
+        // Eigen::MatrixXd sorted_x_sample = perm * X_SAMPLE;
+
+
+        std::cout << "==========================================\n" << std::endl;
+    }
+
+    
+}

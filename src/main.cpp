@@ -1,4 +1,5 @@
 #include "GaussianProcess.h"
+#include "BayesianOpt.h"
 #include "Voxel.h"
 #include "helper_functions.h"
 
@@ -24,8 +25,8 @@ int main(int argc, char** argv) {
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
-    s.bootstrap = true;
-    s.time_stepping = 0;
+    s.bootstrap = false;
+    s.time_stepping = 2;
     s.updateTimeSteppingValues();
 
     // set file path
@@ -42,7 +43,7 @@ int main(int argc, char** argv) {
     int ndata0;
     bool multi_thread = true; 
     if (s.bootstrap){
-        ndata0 = 100; 
+        ndata0 = 1000; 
         bootstrap(s, c, bopti, ndata0, file_path, multi_thread);
         
         // store data
@@ -61,9 +62,6 @@ int main(int argc, char** argv) {
     Eigen::VectorXd* y_test      = new Eigen::VectorXd;
     Eigen::VectorXd* y_test_std  = new Eigen::VectorXd;
 
-    Eigen::MatrixXd* x_total     = new Eigen::MatrixXd;
-    Eigen::VectorXd* y_total     = new Eigen::VectorXd;
-
     // split and move data from bopti to corresponding matrices
     build_dataset(bopti, x_train, y_train, x_test, y_test);
     
@@ -72,44 +70,38 @@ int main(int argc, char** argv) {
     
     // // pre-learned parameters
     std::vector<double> model_param;
-    switch (s.time_stepping){
-        case 0: 
-            model_param = {0.99439,0.356547,0.000751229};   // obj_0 -> 673.344
-            break;
-        case 1: 
-            model_param = {0.994256,0.623914,0.000965578};  // obj_1 -> 422.003 
-            break;
-        case 2:
-            model_param = {0.940565,0.708302,0.000328992};  // obj_2 -> 397.977
-            break;
-        case 3: 
-            model_param = {0.956662, 0.78564, 0.00095118};  // obj_3 -> 487.76 
-            break; 
-    }
-
-    if (pre_learned){
-        model.train(*x_train, *y_train, model_param);
-    }else{
-        model.train(*x_train, *y_train);
-    }
+    train_prior(model,
+                *x_train, 
+                *y_train, 
+                model_param, 
+                s.time_stepping, 
+                pre_learned);
     
     // validate or predict
-    if (validate){
-        model.validate(*x_test, *y_test);
-    }else{ 
-        model.predict(*x_test, false);
-    }
+    evaluate_model(model, *x_test, *y_test, validate);
     
     // step 2: evaluate uniform points across domain
     int num_test = 25;
-    *x_test  = Eigen::MatrixXd(num_test, 5);
-    gen_test_points(c, *x_test);
-    model.predict(*x_test, true);
-    *y_test_std = model.get_y_test_std();
-    Eigen::VectorXd y_mean = model.get_y_test();
-    std::cout << "\ny_mean: \n" << y_mean.transpose().head(5) << std::endl;
-    std::cout << " # elements in y_mean: " << y_mean.size() << std::endl;
-    std::cout << "\ny_test_std: \n" << y_test_std->transpose().head(5) << std::endl;
+    Eigen::MatrixXd *x_sample      = new Eigen::MatrixXd(num_test, 5);
+    Eigen::VectorXd *y_sample_mean = new Eigen::VectorXd(num_test);
+    Eigen::VectorXd *y_sample_std  = new Eigen::VectorXd(num_test); 
+
+    sample_posterior(model, 
+                     *x_sample, 
+                     *y_sample_mean, 
+                     *y_sample_std, 
+                     c); 
+
+    acq_ucb(model, 
+            *x_sample, 
+            *y_sample_mean, 
+            *y_sample_std, 
+            false);
+
+    // sort 
+
+    
+    
 
     
     // int num_sims = 10000; 
@@ -139,12 +131,15 @@ int main(int argc, char** argv) {
     
     delete x_train;
     delete x_test; 
+    delete x_sample; 
     delete y_train; 
     delete y_test; 
     delete y_test_std;
     delete y_train_std;
-    delete x_total;
-    delete y_total;
+
+    delete y_sample_mean; 
+    delete y_sample_std; 
+
     delete bopti;
 
     // Get the current time after the code segment finishes

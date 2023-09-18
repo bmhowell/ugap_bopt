@@ -28,4 +28,31 @@ void    genetic_algorithm(std::vector<double> &OPT_C,
                           std::vector<double> &INIT_VALS, 
                           FunctionPtr         OBJ_FUNC,
                           std::string         FILE_PATH);
+
+
+void train_prior(GaussianProcess &MODEL, 
+                 Eigen::MatrixXd &X_TRAIN, 
+                 Eigen::VectorXd &Y_TRAIN,
+                 std::vector<double> &M_PARAMS, 
+                 int TIME_STEPPING, 
+                 bool pre_learned);
+
+void evaluate_model(GaussianProcess &MODEL, 
+                    Eigen::MatrixXd &X_TEST, 
+                    Eigen::VectorXd &Y_TEST, 
+                    bool VALIDATE);
+
+void sample_posterior(GaussianProcess &MODEL, 
+                      Eigen::MatrixXd &X_SAMPLE, 
+                      Eigen::VectorXd &Y_SAMPLE_MEAN, 
+                      Eigen::VectorXd &Y_SAMPLE_STD,
+                      constraints &C);
+
+void acq_ucb(GaussianProcess &MODEL, 
+             Eigen::MatrixXd &X_SAMPLE, 
+             Eigen::VectorXd &Y_SAMPLE_MEAN, 
+             Eigen::VectorXd &Y_SAMPLE_STD,
+             bool MAXIMIZE);
+
+
 #endif  // HELPER_FUNCTIONS_H

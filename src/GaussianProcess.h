@@ -1,5 +1,5 @@
-#ifndef BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
-#define BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
+#ifndef GAUSSIANPROCESS_H
+#define GAUSSIANPROCESS_H
 #include "common.h"
 
 class GaussianProcess {
@@ -30,6 +30,9 @@ private:
     Eigen::MatrixXd x_test; 
     Eigen::VectorXd y_test;
     Eigen::VectorXd y_test_std;
+
+    // bayesian optimization output
+    std::vector<int> candidates; 
 
     // scaling
     Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
@@ -166,7 +169,7 @@ public:
 
     Eigen::VectorXd get_y_test_std();
 
-
+    std::vector<int> get_candidates();
 };
 
-#endif //BAYESIANOPTIMISATIONCPP_GAUSSIANPROCESS_H
+#endif //GAUSSIANPROCESS_H
