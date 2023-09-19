@@ -370,23 +370,7 @@ void acq_ucb(GaussianProcess &MODEL,
         X_SAMPLE   = X_SAMPLE(sorted_inds, Eigen::all);
 
         std::cout << "lcb: \n" << CONF_BOUND.transpose() << std::endl;
-        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl;
-
-
-        // // sort in ascending order
-        // Eigen::VectorXd sorted_y_mean = Y_SAMPLE_MEAN;
-        // Eigen::VectorXi permutation_indices = Eigen::VectorXi::LinSpaced(sorted_y_mean.size(), 0, sorted_y_mean.size() - 1);
-
-        // std::sort(permutation_indices.data(), permutation_indices.data() + permutation_indices.size(),
-        //           [&sorted_y_mean](int i1, int i2) {return sorted_y_mean(i1) < sorted_y_mean(i2);});
-        // std::sort(sorted_y_mean.data(), sorted_y_mean.data() + sorted_y_mean.size());
-
-        // // create an Eigen::PermutationMatrix for rearranging X_TRAIN
-        // Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> perm(sorted_y_mean.size());
-        // perm.indices() = permutation_indices;
-
-        // // rearange X_TRAIN
-        // Eigen::MatrixXd sorted_x_sample = perm * X_SAMPLE;
+        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl; 
 
 
         std::cout << "==========================================\n" << std::endl;

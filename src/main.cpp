@@ -2,6 +2,7 @@
 #include "BayesianOpt.h"
 #include "Voxel.h"
 #include "helper_functions.h"
+#include "common.h"
 
 
 int main(int argc, char** argv) {
@@ -26,7 +27,7 @@ int main(int argc, char** argv) {
     constraints c; 
     sim         s;
     s.bootstrap = false;
-    s.time_stepping = 2;
+    s.time_stepping = 0;
     s.updateTimeSteppingValues();
 
     // set file path
@@ -92,15 +93,53 @@ int main(int argc, char** argv) {
                      *y_sample_mean, 
                      *y_sample_std, 
                      c); 
-
     acq_ucb(model, 
             *x_sample, 
             *y_sample_mean, 
             *y_sample_std,
             *conf_bound,  
-            true);
+            false);
 
-    // sort 
+
+    
+    // evaluate voxel simulations using all  
+    std::cout << "--- running new evaluations ---" << std::endl;
+    int num_evals = omp_get_num_procs();
+    std::vector<bopt> voxels;
+    #pragma omp parallel for
+    for (int id = 0; id < num_evals; ++id){
+        bopt b; 
+        b.temp = x_sample->coeff(id, 0);
+        b.rp   = x_sample->coeff(id, 1);
+        b.vp   = x_sample->coeff(id, 2); 
+        b.uvi  = x_sample->coeff(id, 3);
+        b.uvt  = x_sample->coeff(id, 4);
+
+        // perform simulation with top candidates
+        Voxel voxel_sim(s.tfinal, s.dt, s.node, id, b.temp, b.uvi, b.uvt, file_path, true);
+
+        voxel_sim.ComputeParticles(b.rp, b.vp); 
+        voxel_sim.Simulate(s.method, s.save_voxel); 
+        b.obj  = voxel_sim.obj; 
+
+        // write individual data to file (prevent accidental loss of data if stopped early)
+        write_to_file(b, s, id, file_path);
+        
+        #pragma omp critical
+        {
+            int thread_id = omp_get_thread_num();
+            voxels.push_back(b); 
+            std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
+        }
+    }
+
+    std::cout << "--- finished new evaluations ---" << std::endl;
+    for (int i = 0; i < num_evals; ++i){
+        std::cout << "voxel " << i << ": " << voxels[i].obj << std::endl;
+    }
+
+    // Eigen::MatrixXd *x_eval = new Eigen::MatrixXd(num_evals, 5);
+    // Eigen::VectorXd *y_eval = new Eigen::VectorXd(num_evals, 1);
 
     
     
@@ -130,17 +169,22 @@ int main(int argc, char** argv) {
 
     // // store data
     // store_tot_data(bopti, ndata0, file_path);
-    
+
     delete x_train;
-    delete x_test; 
-    delete x_sample; 
     delete y_train; 
+    delete y_train_std;
+    
+    delete x_test; 
     delete y_test; 
     delete y_test_std;
-    delete y_train_std;
 
+    delete x_sample; 
     delete y_sample_mean; 
     delete y_sample_std; 
+    
+    // delete x_eval;
+    // delete y_eval;
+    delete conf_bound;
 
     delete bopti;
 
