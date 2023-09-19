@@ -85,6 +85,7 @@ int main(int argc, char** argv) {
     Eigen::MatrixXd *x_sample      = new Eigen::MatrixXd(num_test, 5);
     Eigen::VectorXd *y_sample_mean = new Eigen::VectorXd(num_test);
     Eigen::VectorXd *y_sample_std  = new Eigen::VectorXd(num_test); 
+    Eigen::VectorXd *conf_bound    = new Eigen::VectorXd(num_test);
 
     sample_posterior(model, 
                      *x_sample, 
@@ -95,8 +96,9 @@ int main(int argc, char** argv) {
     acq_ucb(model, 
             *x_sample, 
             *y_sample_mean, 
-            *y_sample_std, 
-            false);
+            *y_sample_std,
+            *conf_bound,  
+            true);
 
     // sort 
 

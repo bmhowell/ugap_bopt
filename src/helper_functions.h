@@ -52,6 +52,7 @@ void acq_ucb(GaussianProcess &MODEL,
              Eigen::MatrixXd &X_SAMPLE, 
              Eigen::VectorXd &Y_SAMPLE_MEAN, 
              Eigen::VectorXd &Y_SAMPLE_STD,
+             Eigen::VectorXd &CONF_BOUND,
              bool MAXIMIZE);
 
 

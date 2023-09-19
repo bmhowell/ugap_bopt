@@ -333,37 +333,44 @@ void acq_ucb(GaussianProcess &MODEL,
              Eigen::MatrixXd &X_SAMPLE, 
              Eigen::VectorXd &Y_SAMPLE_MEAN, 
              Eigen::VectorXd &Y_SAMPLE_STD, 
+             Eigen::VectorXd &CONF_BOUND,
              bool MAXIMIZE){
     if (MAXIMIZE){
-        Eigen::MatrixXd ucb = Y_SAMPLE_MEAN + 1.96 * Y_SAMPLE_STD;
+        CONF_BOUND = Y_SAMPLE_MEAN + 1.96 * Y_SAMPLE_STD;
         std::cout << "\n================ acq_ucb ================" << std::endl;
         std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
-        std::cout << "ucb: \n" << ucb.transpose() << std::endl;
+        std::cout << "ucb: \n" << CONF_BOUND.transpose() << std::endl;
         std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl;
+
+        Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(CONF_BOUND.size(), 0, CONF_BOUND.size() - 1);
+        std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
+                  [&CONF_BOUND](int a, int b) { return CONF_BOUND(a) > CONF_BOUND(b); });
+
+        CONF_BOUND = CONF_BOUND(sorted_inds);
+        X_SAMPLE   = X_SAMPLE(sorted_inds, Eigen::all);
+        std::cout << "\nucb: \n" << CONF_BOUND.transpose() << std::endl;
+        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl;
 
         
         std::cout << "==========================================\n" << std::endl;
     }
     else{
-        Eigen::MatrixXd lcb = Y_SAMPLE_MEAN - 1.96 * Y_SAMPLE_STD;
-        std::cout << "\n================ acq_ucb ================" << std::endl;
+        CONF_BOUND = Y_SAMPLE_MEAN - 1.96 * Y_SAMPLE_STD;
+        std::cout << "\n================ acq_lcb ================" << std::endl;
         std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
-        std::cout << "lcb: \n" << lcb.transpose() << std::endl;
+        std::cout << "lcb: \n" << CONF_BOUND.transpose() << std::endl;
         std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl; 
 
         // sort data in ascending order according to Y_SAMPLE MEAN
-        Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(Y_SAMPLE_MEAN.size(), 0, Y_SAMPLE_MEAN.size() - 1);
+        Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(CONF_BOUND.size(), 0, CONF_BOUND.size() - 1);
         std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
-                  [&Y_SAMPLE_MEAN](int a, int b) { return Y_SAMPLE_MEAN(a) < Y_SAMPLE_MEAN(b); });
+                  [&CONF_BOUND](int a, int b) { return CONF_BOUND(a) < CONF_BOUND(b); });
 
-        Eigen::VectorXd y_sample_mean_sorted = Y_SAMPLE_MEAN(sorted_inds);
-        Eigen::MatrixXd x_sample_sorted     = X_SAMPLE(sorted_inds, Eigen::all);
+        CONF_BOUND = CONF_BOUND(sorted_inds);
+        X_SAMPLE   = X_SAMPLE(sorted_inds, Eigen::all);
 
-        std::cout << "y_sample_mean: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
-        std::cout << "y_sample_mean_sorted: \n" << y_sample_mean_sorted.transpose() << std::endl;
-        
+        std::cout << "lcb: \n" << CONF_BOUND.transpose() << std::endl;
         std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl;
-        std::cout << "sorted_data: \n" << x_sample_sorted << std::endl;
 
 
         // // sort in ascending order
