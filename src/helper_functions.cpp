@@ -195,12 +195,12 @@ int  read_data(std::vector<bopt> *bopti, std::string file_path){
     return id; 
 }
 
-void build_dataset(std::vector<bopt>* bopti,
-                   Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
-                   Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL){
+void build_dataset(std::vector<bopt> &_bopti,
+                   Eigen::MatrixXd   &_x_train, Eigen::VectorXd &_y_train,
+                   Eigen::MatrixXd   &_x_val,   Eigen::VectorXd &_y_val){
 
     // split data into training and validation sets
-    int num_data = (*bopti).size();
+    int num_data = _bopti.size();
     int num_train = 0.9 * num_data;
     int num_val   = 0.1 * num_data;
     std::cout << "\n================ build dataset ================" << std::endl;
@@ -209,45 +209,66 @@ void build_dataset(std::vector<bopt>* bopti,
     std::cout << "num_val: " << num_val << std::endl;
     std::cout << "===============================================\n" << std::endl;
 
-    // resize X_TRAIN, Y_TRAIN, X_VAL, and Y_VAL
-    X_TRAIN->resize(num_train, 5);
-    Y_TRAIN->resize(num_train);
-    X_VAL  ->resize(num_val, 5);
-    Y_VAL  ->resize(num_val);
+    // resize _x_train, _y_train, _x_val, and Y_VAL
+    _x_train.resize(num_train, 5);
+    _y_train.resize(num_train);
+    _x_val.resize(num_val, 5);
+    _y_val.resize(num_val);
     
     // shuffle dataset
     std::random_device rd;
     // std::mt19937 g(rd());
     std::mt19937 g(47);
-    std::shuffle((*bopti).begin(), (*bopti).end(), g);
+    std::shuffle(_bopti.begin(), _bopti.end(), g);
 
     // initialize training and validation sets
-    *X_TRAIN = Eigen::MatrixXd(num_train, 5);
-    *Y_TRAIN = Eigen::VectorXd(num_train);
-    *X_VAL   = Eigen::MatrixXd(num_val, 5);
-    *Y_VAL   = Eigen::VectorXd(num_val);
+    _x_train = Eigen::MatrixXd(num_train, 5);
+    _y_train = Eigen::VectorXd(num_train);
+    _x_val   = Eigen::MatrixXd(num_val, 5);
+    _y_val   = Eigen::VectorXd(num_val);
 
     // populate training and validation sets
     for (int i = 0; i < num_train; ++i) {
-        (*X_TRAIN)(i, 0) = (*bopti)[i].temp;
-        (*X_TRAIN)(i, 1) = (*bopti)[i].rp;
-        (*X_TRAIN)(i, 2) = (*bopti)[i].vp;
-        (*X_TRAIN)(i, 3) = (*bopti)[i].uvi;
-        (*X_TRAIN)(i, 4) = (*bopti)[i].uvt;
-        (*Y_TRAIN)(i)    = (*bopti)[i].obj;
+        _x_train(i, 0) = _bopti[i].temp;
+        _x_train(i, 1) = _bopti[i].rp;
+        _x_train(i, 2) = _bopti[i].vp;
+        _x_train(i, 3) = _bopti[i].uvi;
+        _x_train(i, 4) = _bopti[i].uvt;
+        _y_train(i)    = _bopti[i].obj;
     }
 
     for (int i = 0; i < num_val; ++i) {
-        (*X_VAL)(i, 0) = (*bopti)[i + num_train].temp;
-        (*X_VAL)(i, 1) = (*bopti)[i + num_train].rp;
-        (*X_VAL)(i, 2) = (*bopti)[i + num_train].vp;
-        (*X_VAL)(i, 3) = (*bopti)[i + num_train].uvi;
-        (*X_VAL)(i, 4) = (*bopti)[i + num_train].uvt;
-        (*Y_VAL)(i)    = (*bopti)[i + num_train].obj;
+        _x_val(i, 0) = _bopti[i + num_train].temp;
+        _x_val(i, 1) = _bopti[i + num_train].rp;
+        _x_val(i, 2) = _bopti[i + num_train].vp;
+        _x_val(i, 3) = _bopti[i + num_train].uvi;
+        _x_val(i, 4) = _bopti[i + num_train].uvt;
+        _y_val(i)    = _bopti[i + num_train].obj;
     }
 
 }
 
+
+void build_dataset(std::vector<bopt> &_bopti,
+                   Eigen::MatrixXd   &_x_train, 
+                   Eigen::VectorXd   &_y_train){
+
+    int num_data = _bopti.size();
+
+    _x_train.resize(num_data, 5);
+    _y_train.resize(num_data);
+
+    // populate training and validation sets
+    for (int i = 0; i < num_data; ++i) {
+        _x_train(i, 0) = _bopti[i].temp;
+        _x_train(i, 1) = _bopti[i].rp;
+        _x_train(i, 2) = _bopti[i].vp;
+        _x_train(i, 3) = _bopti[i].uvi;
+        _x_train(i, 4) = _bopti[i].uvt;
+        _y_train(i)    = _bopti[i].obj;
+    }
+
+}
 
 void gen_test_points(constraints&     c, 
                      Eigen::MatrixXd& X){
@@ -336,11 +357,8 @@ void acq_ucb(GaussianProcess &MODEL,
              Eigen::VectorXd &CONF_BOUND,
              bool MAXIMIZE){
     if (MAXIMIZE){
+        // UCB algorithm (LATER CHANGE 1.96 to decaying parameter)
         CONF_BOUND = Y_SAMPLE_MEAN + 1.96 * Y_SAMPLE_STD;
-        std::cout << "\n================ acq_ucb ================" << std::endl;
-        std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
-        std::cout << "ucb: \n" << CONF_BOUND.transpose() << std::endl;
-        std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl;
 
         Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(CONF_BOUND.size(), 0, CONF_BOUND.size() - 1);
         std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
@@ -348,32 +366,17 @@ void acq_ucb(GaussianProcess &MODEL,
 
         CONF_BOUND = CONF_BOUND(sorted_inds);
         X_SAMPLE   = X_SAMPLE(sorted_inds, Eigen::all);
-        std::cout << "\nucb: \n" << CONF_BOUND.transpose() << std::endl;
-        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl;
-
-        
-        std::cout << "==========================================\n" << std::endl;
     }
     else{
+        // LCB algorithm (LATER CHANGE 1.96 to decaying parameter)
         CONF_BOUND = Y_SAMPLE_MEAN - 1.96 * Y_SAMPLE_STD;
-        std::cout << "\n================ acq_lcb ================" << std::endl;
-        std::cout << "Y_SAMPLE_MEAN: \n" << Y_SAMPLE_MEAN.transpose() << std::endl;
-        std::cout << "lcb: \n" << CONF_BOUND.transpose() << std::endl;
-        std::cout << "std: \n" << Y_SAMPLE_STD.transpose() << std::endl; 
 
-        // sort data in ascending order according to Y_SAMPLE MEAN
         Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(CONF_BOUND.size(), 0, CONF_BOUND.size() - 1);
         std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
                   [&CONF_BOUND](int a, int b) { return CONF_BOUND(a) < CONF_BOUND(b); });
 
         CONF_BOUND = CONF_BOUND(sorted_inds);
         X_SAMPLE   = X_SAMPLE(sorted_inds, Eigen::all);
-
-        std::cout << "lcb: \n" << CONF_BOUND.transpose() << std::endl;
-        std::cout << "X_SAMPLE: \n"    << X_SAMPLE        << std::endl; 
-
-
-        std::cout << "==========================================\n" << std::endl;
     }
 
     

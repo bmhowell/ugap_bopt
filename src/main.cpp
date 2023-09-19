@@ -52,8 +52,7 @@ int main(int argc, char** argv) {
     }else{
         ndata0 = read_data(bopti, file_path);
     }
-
-
+    
     // convert data to Eigen matrices
     Eigen::MatrixXd* x_train     = new Eigen::MatrixXd;
     Eigen::VectorXd* y_train     = new Eigen::VectorXd;
@@ -64,7 +63,8 @@ int main(int argc, char** argv) {
     Eigen::VectorXd* y_test_std  = new Eigen::VectorXd;
 
     // split and move data from bopti to corresponding matrices
-    build_dataset(bopti, x_train, y_train, x_test, y_test);
+    // build_dataset(*bopti, *x_train, *y_train, *x_test, *y_test);  // build dataset for training and testing
+    build_dataset(*bopti, *x_train, *y_train);                      // build dataset for training only
     
     // set up gaussian process
     GaussianProcess model = GaussianProcess("RBF", file_path); 
@@ -81,8 +81,9 @@ int main(int argc, char** argv) {
     // validate or predict
     evaluate_model(model, *x_test, *y_test, validate);
     
+    ////////////   LOOP   ////////////
     // step 2: evaluate uniform points across domain
-    int num_test = 25;
+    int num_test = 100;
     Eigen::MatrixXd *x_sample      = new Eigen::MatrixXd(num_test, 5);
     Eigen::VectorXd *y_sample_mean = new Eigen::VectorXd(num_test);
     Eigen::VectorXd *y_sample_std  = new Eigen::VectorXd(num_test); 
@@ -105,7 +106,7 @@ int main(int argc, char** argv) {
     // evaluate voxel simulations using all  
     std::cout << "--- running new evaluations ---" << std::endl;
     int num_evals = omp_get_num_procs();
-    std::vector<bopt> voxels;
+    std::vector<bopt> voxels_evals;
     #pragma omp parallel for
     for (int id = 0; id < num_evals; ++id){
         bopt b; 
@@ -128,47 +129,17 @@ int main(int argc, char** argv) {
         #pragma omp critical
         {
             int thread_id = omp_get_thread_num();
-            voxels.push_back(b); 
+            voxels_evals.push_back(b); 
             std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
         }
     }
 
     std::cout << "--- finished new evaluations ---" << std::endl;
-    for (int i = 0; i < num_evals; ++i){
-        std::cout << "voxel " << i << ": " << voxels[i].obj << std::endl;
-    }
-
-    // Eigen::MatrixXd *x_eval = new Eigen::MatrixXd(num_evals, 5);
-    // Eigen::VectorXd *y_eval = new Eigen::VectorXd(num_evals, 1);
-
     
-    
-
-    
-    // int num_sims = 10000; 
-    // int ndata    = ndata0; 
-
-    // // // OPTIMISATION LOOP
-    // // for (int id = 0; id < num_sims; ++id) {
-
-    // //     // generate random points
-        
-
-    // //     // STEP 2: fit model
-        
-
-
-    // //     bopt b; 
-    // //     gen_data(TFINAL, DT, NODE, id, b, simi, file_path);
-    // //     write_to_file(b, id); 
-
-    // //     store data point
-    // //     bopti->push_back(b);
-    // //     ndata++; 
-    // // }
-
-    // // store data
-    // store_tot_data(bopti, ndata0, file_path);
+    // concatenate data
+    bopti->insert(bopti->end(), voxels_evals.begin(), voxels_evals.end());
+    store_tot_data(bopti, s, ndata0 + num_evals, file_path);
+    ////////////   END LOOP   ////////////
 
     delete x_train;
     delete y_train; 

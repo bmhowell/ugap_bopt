@@ -17,9 +17,14 @@ void    store_tot_data(std::vector<bopt>* bopti, sim &sim_set, int num_sims, std
 
 int     read_data(std::vector<bopt>* bopti, std::string file_path); 
 
-void    build_dataset(std::vector<bopt>* bopti,
-                      Eigen::MatrixXd*   X_TRAIN, Eigen::VectorXd* Y_TRAIN,
-                      Eigen::MatrixXd*   X_VAL,   Eigen::VectorXd* Y_VAL); 
+void    build_dataset(std::vector<bopt> &_bopti,
+                      Eigen::MatrixXd   &_x_train, Eigen::VectorXd &_y_train,
+                      Eigen::MatrixXd   &_x_val,   Eigen::VectorXd &_y_val); 
+
+
+void    build_dataset(std::vector<bopt> &_bopti,
+                      Eigen::MatrixXd   &_x_train, 
+                      Eigen::VectorXd   &_y_train); 
 
 
 void    gen_test_points(constraints &c, Eigen::MatrixXd &X); 
