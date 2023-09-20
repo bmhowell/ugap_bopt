@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     sim         s;
     s.bootstrap = false;
     s.time_stepping = 0;
-    s.updateTimeSteppingValues();
+    s.update_time_stepping_values();
 
     // set file path
     std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO

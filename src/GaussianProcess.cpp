@@ -2,7 +2,6 @@
 #include "common.h"
 #include <cmath>
 // #include "helper_functions.h"
-// #include "AcquisitionFunction.h"
 
 /* default constructor */
 GaussianProcess::GaussianProcess() {

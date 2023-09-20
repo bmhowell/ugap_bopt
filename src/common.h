@@ -116,7 +116,7 @@ typedef struct sim{
         node = NODE[time_stepping];
     }
 
-    void updateTimeSteppingValues() {
+    void update_time_stepping_values() {
         dt = DT[time_stepping];
         node = NODE[time_stepping];
     }
