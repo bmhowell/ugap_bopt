@@ -50,8 +50,6 @@ BayesianOpt::~BayesianOpt() {
     delete y_sample_mean;
     delete y_sample_std;
     delete conf_bound;
-
-
 }
 
 // PRIVATE MEMBER FUNCTIONS
@@ -148,8 +146,27 @@ void BayesianOpt::gen_test_points(Eigen::MatrixXd &_x_sample){
     }
 }
 
+void BayesianOpt::store_tot_data(std::vector<bopt> &_bopti, int num_sims){
+    std::cout << "\n--- storing data ---\n" << std::endl;
+    std::ofstream my_file; 
+    my_file.open(this->file_path + "/tot_bopt.dat");
+    my_file << "temp, rp, vp, uvi, uvt, obj, tn" << std::endl;
+    
+    for (int id = 0; id < num_sims; ++id){
+        my_file << _bopti[id].temp << ", " 
+                << _bopti[id].rp   << ", " 
+                << _bopti[id].vp   << ", " 
+                << _bopti[id].uvi  << ", " 
+                << _bopti[id].uvt  << ", " 
+                << _bopti[id].obj  << ", " 
+                << s.time_stepping << std::endl;
+    }
+    my_file.close();
+}
+
 // PUBLIC MEMBER FUNCTIONS
 void BayesianOpt::load_data(std::vector<bopt> &_bopti, bool _validate) {
+    this->bopti    = _bopti;
     this->validate = _validate;
 
     if (_validate){
@@ -207,13 +224,96 @@ void BayesianOpt::evaluate_model(){
 
 void BayesianOpt::sample_posterior(){
 
-    x_sample     ->resize(this->num_sample, this->n_dim);
-    y_sample_mean->resize(this->num_sample);
-    y_sample_std ->resize(this->num_sample);
-    conf_bound   ->resize(this->num_sample);
+    x_sample      ->resize(this->num_sample, this->n_dim);
+    y_sample_mean ->resize(this->num_sample);
+    y_sample_std  ->resize(this->num_sample);
+    conf_bound    ->resize(this->num_sample);
 
     gen_test_points(*x_sample);
+
+    this->model.predict(*x_sample, false);
+
+    this->y_sample_mean->array() = this->model.get_y_test().array();
+    this->y_sample_std->array()  = this->model.get_y_test_std().array();
+
 }
 
 
+void BayesianOpt::qUCB(bool _lcb){
+    if (_lcb){
+        this->conf_bound->array() = this->y_sample_mean->array() - 1.96 * this->y_sample_std->array();
+
+        // sort conf_bound
+        Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(this->conf_bound->size(), 0, this->conf_bound->size() - 1);
+
+        std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
+                [this](int a, int b) { return (*this->conf_bound)(a) < (*this->conf_bound)(b); });
+
+        *conf_bound = (*conf_bound)(sorted_inds);
+        *x_sample   = (*x_sample)(sorted_inds, Eigen::all);
+    }
+}
+
+void BayesianOpt::qUCB(){
+    this->conf_bound->array() = this->y_sample_mean->array() - 1.96 * this->y_sample_std->array();
+
+    // sort conf_bound
+    Eigen::VectorXi sorted_inds = Eigen::VectorXi::LinSpaced(this->conf_bound->size(), 0, this->conf_bound->size() - 1);
+
+    std::sort(sorted_inds.data(), sorted_inds.data() + sorted_inds.size(),
+            [this](int a, int b) { return (*this->conf_bound)(a) > (*this->conf_bound)(b); });
+
+    *conf_bound = (*conf_bound)(sorted_inds);
+    *x_sample   = (*x_sample)(sorted_inds, Eigen::all);
+
+}
+
+void BayesianOpt::evaluate_samples(){
+    this->num_evals = omp_get_num_procs();
+    std::vector<bopt> voxels_evals;
+    #pragma omp parallel for
+    for (int id = 0; id < this->num_evals; ++id){
+        bopt b; 
+        b.temp = x_sample->coeff(id, 0);
+        b.rp   = x_sample->coeff(id, 1);
+        b.vp   = x_sample->coeff(id, 2);
+        b.uvi  = x_sample->coeff(id, 3);
+        b.uvt  = x_sample->coeff(id, 4);
+        
+        // perform simulation with top candidates
+        Voxel voxel_sim(s.tfinal,
+                        s.dt, 
+                        s.node, 
+                        id, 
+                        b.temp, 
+                        b.uvi, 
+                        b.uvt, 
+                        this->file_path, 
+                        s.save_voxel);
+
+        voxel_sim.ComputeParticles(b.rp, 
+                                   b.vp);
+        
+        b.obj = voxel_sim.obj; 
+
+        #pragma omp critical
+        {
+            int thread_id = omp_get_thread_num();
+            voxels_evals.push_back(b);
+            std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
+        }
+    }
+
+    std::cout << "--- finished new evaluations ---" << std::endl;
+
+    // concatenate data
+    this->bopti.insert(this->bopti.end(), voxels_evals.begin(), voxels_evals.end());
+    store_tot_data(this->bopti, this->bopti.size() + this->num_evals);
+
+
+}
+
+void BayesianOpt::optimize(){
+
+}
 

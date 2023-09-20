@@ -25,6 +25,7 @@ private:
     
 
     // data 
+    std::vector<bopt> bopti;
     Eigen::MatrixXd* x_train     = new Eigen::MatrixXd;
     Eigen::VectorXd* y_train     = new Eigen::VectorXd;
     Eigen::VectorXd* y_train_std = new Eigen::VectorXd;
@@ -64,6 +65,8 @@ public:
 
     void gen_test_points(Eigen::MatrixXd &_x_sample); 
 
+    void store_tot_data(std::vector<bopt> &_bopti, int num_sims); 
+
     // PUBLIC MEMBER FUNCTIONS
     void load_data(std::vector<bopt> &_bopti, bool _validate); 
     
@@ -73,6 +76,13 @@ public:
     void evaluate_model(); 
 
     void sample_posterior(); 
+
+    void qUCB(bool _lcb); 
+    void qUCB(); 
+
+    void evaluate_samples(); 
+
+    void optimize();
 
 
 }; 
