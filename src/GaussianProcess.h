@@ -1,5 +1,9 @@
-#ifndef GAUSSIANPROCESS_H
-#define GAUSSIANPROCESS_H
+// Copyright 2023 Brian Howell
+// MIT License
+// Project: BayesOpt
+
+#ifndef SRC_GAUSSIANPROCESS_H_
+#define SRC_GAUSSIANPROCESS_H_
 #include "common.h"
 
 class GaussianProcess {
@@ -183,4 +187,4 @@ public:
     std::vector<int> get_candidates();
 };
 
-#endif //GAUSSIANPROCESS_H
+#endif // SRC_GAUSSIANPROCESS_H_

@@ -338,6 +338,7 @@ void BayesianOpt::qUCB() {
 void BayesianOpt::evaluate_samples() {
     // evaluate top candidates
     _num_evals = omp_get_num_procs();
+    std::cout << "NUM EVALUATIONS: " << _num_evals << std::endl;
     std::vector<bopt> voxels_evals;
     #pragma omp parallel for
     for (int id = 0; id < _num_evals; ++id) {
@@ -363,13 +364,22 @@ void BayesianOpt::evaluate_samples() {
         voxel_sim.ComputeParticles(b.rp,
                                    b.vp);
         voxel_sim.Simulate(_s.method, _s.save_voxel);
-        b.obj = voxel_sim.obj;
+        b.obj = voxel_sim._obj;
 
         #pragma omp critical
         {
             int thread_id = omp_get_thread_num();
             voxels_evals.push_back(b);
-            std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
+            std::cout << "Thread " << thread_id 
+                        << ": i = " << id 
+                        << " | b.obj: " << b.obj << std::endl;
+            // std::cout << "b.obj: " << b.obj << std::endl;
+            std::cout << "b.temp: " << b.temp << std::endl;
+            std::cout << "b.rp: " << b.rp << std::endl;
+            std::cout << "b.vp: " << b.vp << std::endl;
+            std::cout << "b.uvi: " << b.uvi << std::endl;
+            std::cout << "b.uvt: " << b.uvt << std::endl;
+            std::cout << "-------------------\n" << std::endl; 
         }
     }
 
@@ -377,7 +387,7 @@ void BayesianOpt::evaluate_samples() {
 
     // concatenate data
     _bopti.insert(_bopti.end(), voxels_evals.begin(), voxels_evals.end());
-    this->store_tot_data(_bopti, _bopti.size() + _num_evals);
+    this->store_tot_data(_bopti, _bopti.size());
 }
 
 void BayesianOpt::optimize() {
@@ -389,4 +399,6 @@ void BayesianOpt::optimize() {
     
     // evaluate top candidates
     this->evaluate_samples();
+
+    // update data
 }

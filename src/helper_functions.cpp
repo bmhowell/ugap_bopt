@@ -59,12 +59,12 @@ double gen_data(float tfinal,
                   << std::endl;
 
         std::cout << "testing obj: "
-                  << VoxelSystem1.obj
+                  << VoxelSystem1._obj
                   << std::endl;
     } else {
         std::cout << "---sim " << idsim << " complete ----" << std::endl;
     }
-    return VoxelSystem1.obj;
+    return VoxelSystem1._obj;
 }
 
 // initialize input variables
