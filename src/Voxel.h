@@ -9,128 +9,128 @@ private:
     // MEMBER VARIABLES
 
     // simulation parameters
-    int    sim_id;                                          // |   ---   |  simulation ID
-    float  I0;                                              // |  W/m^2  |  incident light intensity
-    float  t_final;                                         // |    s    |  final simulation time
-    double dt;                                              // |    s    |  time step discretization
-    int    nodes;
-    float  uvt;                                             // |    s    |  uv exposure time
+    int    _sim_id;                                          // |   ---   |  simulation ID
+    float  _I0;                                              // |  W/m^2  |  incident light intensity
+    float  _t_final;                                         // |    s    |  final simulation time
+    double _dt;                                              // |    s    |  time step discretization
+    int    _nodes;
+    float  _uvt;                                             // |    s    |  uv exposure time
     
-    double timer;                                           // |    s    |  timer for simulation
-    float total_time;                                       // | unitless|  total number of nodes
-    float coord_map_const;
+    double _timer;                                           // |    s    |  _timer for simulation
+    float _total_time;                                       // | unitless|  total number of _nodes
+    float _coord_map_const;
 
-    double theta0;                                          // |    K    |  initial temperature
-    int interfacial_nodes;                                  // |   ---   |  interfacial thickness parameter
-    double len_block;                                       // |    m    |  sample length
-    double h;                                               // |    m    |  spatial discretization
-    int N_VOL_NODES;                                        // | unitless|  total number of nodes in RVE
-    int N_PLANE_NODES;                                      // | unitless|  total number of nodes in plane of RVE
+    double _theta0;                                          // |    K    |  initial temperature
+    int _interfacial_nodes;                                  // |   ---   |  interfacial thickness parameter
+    double _len_block;                                       // |    m    |  sample length
+    double _h;                                               // |    m    |  spatial discretization
+    int _N_VOL_NODES;                                        // | unitless|  total number of _nodes in RVE
+    int _N_PLANE_NODES;                                      // | unitless|  total number of _nodes in plane of RVE
 
     // formulation - wt. percent
-    float percent_PI;                                        // |   wt.%  | weight percent of photo initiator
-    float percent_PEA;                                       // |   wt.%  | weight percent of PEA
-    float percent_HDDA;                                      // |   wt.%  | weight percent of HDDA
-    float percent_8025D;                                     // |   wt.%  | weight percent of 8025D
-    float percent_8025E;                                     // |   wt.%  | weight percent of 8025E
-    float percent_E4396;                                     // |   wt.%  | weight percent of HDDA
-    float percent_M;                                         // |   wt.%  | weight percent of monomer
+    float _percent_PI;                                        // |   wt.%  | weight percent of photo initiator
+    float _percent_PEA;                                       // |   wt.%  | weight percent of PEA
+    float _percent_HDDA;                                      // |   wt.%  | weight percent of HDDA
+    float _percent_8025D;                                     // |   wt.%  | weight percent of 8025D
+    float _percent_8025E;                                     // |   wt.%  | weight percent of 8025E
+    float _percent_E4396;                                     // |   wt.%  | weight percent of HDDA
+    float _percent_M;                                         // |   wt.%  | weight percent of monomer
 
     // physical properties
     // densities and molecular weights
-    int rho_PEA;                                              // | kg/m^3  | density of PEA (estimated)
-    int rho_HDDA;                                             // | kg/m^3  | density of HDDA (estimated)
-    int rho_E4396;                                            // | kg/m^3  | density of EBECRYL 4396
-    float rho_M;                                              // | kg/m^3  | weighted average density of monomer
-    float rho_P;                                              // | kg/m^3  | weighted average density of polymer
-    int rho_UGAP;                                             // | kg/m^3  | estimated density of UGAP
-    int rho_nacl;                                             // | kg/m^3  | estimated density of NaCl
+    int _rho_PEA;                                              // | kg/m^3  | _density of PEA (estimated)
+    int _rho_HDDA;                                             // | kg/m^3  | _density of HDDA (estimated)
+    int _rho_E4396;                                            // | kg/m^3  | _density of EBECRYL 4396
+    float _rho_M;                                              // | kg/m^3  | weighted average _density of monomer
+    float _rho_P;                                              // | kg/m^3  | weighted average _density of polymer
+    int _rho_UGAP;                                             // | kg/m^3  | estimated _density of UGAP
+    int _rho_nacl;                                             // | kg/m^3  | estimated _density of NaCl
 
-    float mw_PEA;                                             // |  kg/mol | molecular weight of PEA
-    float mw_HDDA;                                            // |  kg/mol | molecular weight of HDDA
-    float mw_M;                                               // |  kg/mol | weighted average molecular weight of monomer
-    float mw_PI;                                              // |  kg/mol | molecular weight of photo initiator
-    float basis_wt;                                           // |   kg    | arbitrary starting ink weight
-    float basis_vol;                                          // |   m^3   | arbitrary starting ink volume
-    float mol_PI;                                             // |   mol   | required PI for basis weight
-    float mol_M;                                              // |   mol   | required monomer for basis weight
-    float c_M0;                                               // | mol/m^3 | inital concentration of monomer
-    float c_PI0;                                              // | mol/m^3 | inital concentration of photoinitiator
-    float c_NaCl;                                            // | mol/m^3 | concentration of NaCl
+    float _mw_PEA;                                             // |  kg/mol | molecular weight of PEA
+    float _mw_HDDA;                                            // |  kg/mol | molecular weight of HDDA
+    float _mw_M;                                               // |  kg/mol | weighted average molecular weight of monomer
+    float _mw_PI;                                              // |  kg/mol | molecular weight of photo initiator
+    float _basis_wt;                                           // |   kg    | arbitrary starting ink weight
+    float _basis_vol;                                          // |   m^3   | arbitrary starting ink volume
+    float _mol_PI;                                             // |   mol   | required PI for basis weight
+    float _mol_M;                                              // |   mol   | required monomer for basis weight
+    float _c_M0;                                               // | mol/m^3 | inital concentration of monomer
+    float _c_PI0;                                              // | mol/m^3 | inital concentration of photoinitiator
+    float _c_NaCl;                                            // | mol/m^3 | concentration of NaCl
 
     // diffusion parameters
-    double Dm0;                                               // |  m^2/s  | diffusion constant pre-exponential, monomer (taki lit.)
-    float Am;                                                 // | unitless| diffusion constant parameter, monomer (shanna lit.)
+    double _Dm0;                                               // |  m^2/s  | diffusion constant pre-exponential, monomer (taki lit.)
+    float _Am;                                                 // | unitless| diffusion constant parameter, monomer (shanna lit.)
 
     // bowman reaction parameters
-    float Rg;                                                 // | J/mol K | universal gas constant
-    float alpha_P;                                            // |   1/K   | coefficent of thermal expansion, polymerization (taki + bowman lit.)
-    float alpha_M;                                            // |   1/K   | coefficent of thermal expansion, monomer (taki + bowman lit.)
-    float theta_gP;                                           // |    K    | glass transition temperature, polymer UGAP (measured TgA)
-    float theta_gM;                                           // |    K    | glass transition temperature, monomer (Taki lit.)
-    float k_P0;                                               // |m^3/mol s| true kinetic constant, polymerization (taki lit.)
-    float E_P;                                                // |  J/mol  | activation energy, polymerization (lit.)
-    float A_Dp;                                               // | unitless| diffusion parameter, polymerization (lit.)
-    float f_cp;                                               // | unitless| critical free volume, polymerization (lit.)
-    float k_T0;                                               // |m^3/mol s| true kinetic constant, termination (taki lit.)
-    float E_T;                                                // |  J/mol  | activation energy, termination (bowman lit.)
-    float A_Dt;                                               // | unitless| activation energy, termination (taki lit.)
-    float f_ct;                                               // | unitless| critical free volume, termination (taki lit.)
-    float R_rd;                                               // |  1/mol  | reaction diffusion parameter (taki lit.)
+    float _Rg;                                                 // | J/mol K | universal gas constant
+    float _alpha_P;                                            // |   1/K   | coefficent of thermal expansion, polymerization (taki + bowman lit.)
+    float _alpha_M;                                            // |   1/K   | coefficent of thermal expansion, monomer (taki + bowman lit.)
+    float _theta_gP;                                           // |    K    | glass transition temperature, polymer UGAP (measured TgA)
+    float _theta_gM;                                           // |    K    | glass transition temperature, monomer (Taki lit.)
+    float _k_P0;                                               // |m^3/mol s| true kinetic constant, polymerization (taki lit.)
+    float _E_P;                                                // |  J/mol  | activation energy, polymerization (lit.)
+    float _A_Dp;                                               // | unitless| diffusion parameter, polymerization (lit.)
+    float _f_cp;                                               // | unitless| critical free volume, polymerization (lit.)
+    float _k_T0;                                               // |m^3/mol s| true kinetic constant, termination (taki lit.)
+    float _E_T;                                                // |  J/mol  | activation energy, termination (bowman lit.)
+    float _A_Dt;                                               // | unitless| activation energy, termination (taki lit.)
+    float _f_ct;                                               // | unitless| critical free volume, termination (taki lit.)
+    float _R_rd;                                               // |  1/mol  | reaction diffusion parameter (taki lit.)
 
-    float k_I0;                                               // |  s^-1   | primary radical rate constant
-    float A_I;                                                // | unitless| activation energy, initiation (bowman lit. 1)
-    float f_ci;                                               // | unitless| critical free volume, initiation (bowman lit. 1)
-    float E_I;                                                // |  J/mol  | activation energy, initiation (bowman lit. 1)
+    float _k_I0;                                               // |  s^-1   | primary radical rate constant
+    float _A_I;                                                // | unitless| activation energy, initiation (bowman lit. 1)
+    float _f_ci;                                               // | unitless| critical free volume, initiation (bowman lit. 1)
+    float _E_I;                                                // |  J/mol  | activation energy, initiation (bowman lit. 1)
 
     // thermal properties
-    float dHp;                                                // |  W/mol  | heat of polymerization of acrylate monomers
-    int Cp_nacl;                                              // | J/kg/K  | heat capacity of NaCl
-    float Cp_pea;                                             // | J/mol/K | heat capacity of PEA @ 298K - https://polymerdatabase.com/polymer%20physics/Cp%20Table.html
-    float Cp_hdda;                                            // | J/mol/K | solid heat capacity of HDDA - https://webbook.nist.gov/cgi/cbook.cgi?ID=C629118&Units=SI&Mask=1F
-    float K_thermal_nacl;
+    float _dHp;                                                // |  W/mol  | heat of polymerization of acrylate monomers
+    int _Cp_nacl;                                              // | J/kg/K  | heat capacity of NaCl
+    float _Cp_pea;                                             // | J/mol/K | heat capacity of PEA @ 298K - https://polymerdatabase.com/polymer%20physics/Cp%20Table.html
+    float _Cp_hdda;                                            // | J/mol/K | solid heat capacity of HDDA - https://webbook.nist.gov/cgi/cbook.cgi?ID=C629118&Units=SI&Mask=1F
+    float _K_thermal_nacl;
 
 //    // SHANNA PARAMETERS
-    int Cp_shanna;                                            // | J/kg/K  | shanna's heat capacity
-    float K_thermal_shanna;                                   // | W/m/K   | shanna's thermal conductivity
+    int _Cp_shanna;                                            // | J/kg/K  | shanna's heat capacity
+    float _K_thermal_shanna;                                   // | W/m/K   | shanna's thermal conductivity
 
     // photo initiator properties
-    float eps;                                                // |m^3/mol m| initiator absorbtivity
-    float eps_nacl;                                           // |m^3/mol m| NaCl absorbtivity
-    float phi;                                                // | unitless| quantum yield inititation
+    float _eps;                                                // |m^3/mol m| initiator absorbtivity
+    float _eps_nacl;                                           // |m^3/mol m| NaCl absorbtivity
+    float _phi;                                                // | unitless| quantum yield inititation
 
     // numerical method parameters: backward euler
-    float tol;
-    int thresh;
+    float _tol;
+    int _thresh;
 
     // initialize cube_coord, nonboundary_nodes and boundary_nodes
-    int current_coords[3]; 
+    int _current_coords[3]; 
 
     // initialize material properties and uv energy
-    std::vector<double> density, heat_capacity, therm_cond, f_free_volume, uv_values;
+    std::vector<double> _density, _heat_capacity, _therm_cond, _f_free_volume, _uv_values;
 
 
     // initialize spatial concentrations, temperature, and rate constants
-    std::vector<double> c_PI, c_PIdot, c_Mdot, c_M;
-    std::vector<double> theta;
-    std::vector<double> k_t, k_p, k_i, diff_pdot, diff_mdot, diff_m, diff_theta;
+    std::vector<double> _c_PI, _c_PIdot, _c_Mdot, _c_M;
+    std::vector<double> _theta;
+    std::vector<double> _k_t, _k_p, _k_i, _diff_pdot, _diff_mdot, _diff_m, _diff_theta;
 
     // vectors and arrays for particle generation
-    std::vector<int> material_type;                             // 0-resin, 1-particle
-    std::vector<int> particles_ind;                             // vector holding total indices for each particle
-    std::vector<int> particle_interfacial_nodes;                // interfacial distance indices
-    double interfacial_thick = 1.0;
+    std::vector<int> _material_type;                             // 0-resin, 1-particle
+    std::vector<int> _particles_ind;                             // vector holding total indices for each particle
+    std::vector<int> _particle_interfacial_nodes;                // interfacial distance indices
+    double _interfacial_thick = 1.0;
 
     // solution vectors
-    std::vector<double> total_time_steps;                   // time discretization
-    std::vector<double> z_space;                            // spatial discretization
+    std::vector<double> _total_time_steps;                   // time discretization
+    std::vector<double> _z_space;                            // spatial discretization
 
 
     // data outputs
-    std::ofstream print_sim_config; 
-    std::ofstream print_density;
-    std::ofstream print_concentrations;
-    std::ofstream print_avg_concentrations;
+    std::ofstream _print_sim_config; 
+    std::ofstream _print_density;
+    std::ofstream _print_concentrations;
+    std::ofstream _print_avg_concentrations;
 
 public:
     // output file path
@@ -169,7 +169,7 @@ public:
     void ComputeRxnRateConstants();
 
     // equation 1
-    double IRate(std::vector<double> &conc_PI, double I0, double z, int node) const;
+    double IRate(std::vector<double> &conc_PI, double _I0, double z, int node) const;
         // PhotoinitiatorRate - right hand side of photoinitiator ODE
 
 
@@ -177,7 +177,7 @@ public:
     double PIdotRate(std::vector<double> &conc_PIdot,
                               std::vector<double> &conc_PI,
                               std::vector<double> &conc_M,
-                              double I0, double z, int node);
+                              double _I0, double z, int node);
 
 
     // equation 3
@@ -207,10 +207,10 @@ public:
                      std::vector<double> &c_Mdot_next,
                      std::vector<double> &c_M_next,
                      std::vector<double> &theta_next,
-                     double I0, double dt, int method);
+                     double _I0, double _dt, int method);
 
     // write solutions to files
-    void Config2File(double dt); 
+    void Config2File(double _dt); 
 
     void Density2File();
 

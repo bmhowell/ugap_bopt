@@ -6,45 +6,45 @@ class GaussianProcess {
 
 private:
     // MEMBER VARIABLES
-    std::string kernel;                                   // covariance kernel specification
-    std::string file_path;                                // file path to store data
+    std::string _kernel;                                   // covariance kernel specification
+    std::string _file_path;                                // file path to store data
     
-    bool trained, train_scaled, val_scaled, test_scaled;  // flag to indicate if GP has been trained
+    bool _trained, _train_scaled, _val_scaled, _test_scaled;  // flag to indicate if GP has been trained
 
     // initialize covariance matrices
-    //      - l --> number of samples
+    //      - _l --> number of samples
     //      - m --> number of data points
     //      - n --> number of variables
-    Eigen::MatrixXd Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x l) | ∈ ℝ (l x l) ⊂ conditionGP() | ⊂ unconditionedGP()
-    Eigen::MatrixXd Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict();
+    Eigen::MatrixXd _Cov;                                  // ∈ ℝ (m x m) | ∈ ℝ (m x _l) | ∈ ℝ (_l x _l) ⊂ conditionGP() | ⊂ unconditionedGP()
+    Eigen::MatrixXd _Ky;                                   // ∈ ℝ (m x m) ⊂ train() | predict();
 
     // vector and matrix for cholesky decomposition
-    Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict() | compute_lml()
-    Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict() | compute_lml()
-    Eigen::MatrixXd V;
+    Eigen::VectorXd _alpha;                                // ∈ ℝ (m)     ⊂ train() | predict() | compute_lml()
+    Eigen::MatrixXd _L;                                    // ∈ ℝ (m x m) ⊂ train() | predict() | compute_lml()
+    Eigen::MatrixXd _V;
 
     // data
-    Eigen::MatrixXd x_train; 
-    Eigen::VectorXd y_train;
-    Eigen::VectorXd y_train_std;
+    Eigen::MatrixXd _x_train; 
+    Eigen::VectorXd _y_train;
+    Eigen::VectorXd _y_train_std;
 
-    Eigen::MatrixXd x_val; 
-    Eigen::VectorXd y_val; 
+    Eigen::MatrixXd _x_val; 
+    Eigen::VectorXd _y_val; 
 
-    Eigen::MatrixXd x_test; 
-    Eigen::VectorXd y_test;
-    Eigen::VectorXd y_test_std;
+    Eigen::MatrixXd _x_test; 
+    Eigen::VectorXd _y_test;
+    Eigen::VectorXd _y_test_std;
 
     // bayesian optimization output
-    std::vector<int> candidates; 
+    std::vector<int> _candidates; 
 
     // scaling
-    Eigen::VectorXd x_mean, x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
-    double y_mean, y_std;                                 // ∈ ℝ         ⊂ scale_data()
-    double error_val;                                     // ∈ ℝ         ⊂ validate()
+    Eigen::VectorXd _x_mean, _x_std;                        // ∈ ℝ (m)     ⊂ scale_data()
+    double _y_mean, _y_std;                                 // ∈ ℝ         ⊂ scale_data()
+    double _error_val;                                     // ∈ ℝ         ⊂ validate()
     
     // learned parameters
-    double l, sf, sn, lml;
+    double _l, _sf, _sn, _lml;
 
     // MEMBER FUNCTIONS
 
@@ -53,7 +53,7 @@ private:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
      *
-     *      - l: number of test points
+     *      - _l: number of test points
      *      - m: number of data points
      *      - n: number of variables
      *
@@ -72,13 +72,12 @@ private:
      *
      *  output:
      *      - K: covariance matrix ∈ ℝ (m x m)
-     *      - Mu: average predicted output ∈ ℝ (l x m)
+     *      - Mu: average predicted output ∈ ℝ (_l x m)
      *
     */
     
     /* scaling data */
-    void scale_data(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, 
-                    Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL);
+    void scale_data(Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL, bool VAL);
 
     void scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
 
@@ -91,7 +90,7 @@ private:
     /* description:
         - choice of optimization method
         - model parameters: 
-            - length scale: l
+            - length scale: _l
             - signal variance: σ_f^2
             - noise parameter: σ_n^2
     */
@@ -102,7 +101,7 @@ private:
         for genetic algorithm. 
     */ 
 
-    void gen_opt(double& l, double& sf, double& sn);
+    void gen_opt(double& _l, double& _sf, double& _sn);
     /* 
         Genetic algorithm used for maximization of marginal log likelihood. 
     */ 
@@ -123,11 +122,10 @@ public:
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
 
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
-               Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL, 
                std::vector<double>& model_param); 
     
-    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
-               Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL); 
+    // void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
+    //            Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL); 
     /* 
         Either: 
             - perform model selection
@@ -135,35 +133,35 @@ public:
     */
 
     /* validation */
-    double validate();
+    double validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL);
 
     /* inference */
     void predict(Eigen::MatrixXd& X_TEST, bool compute_std = true);
 
     /*  Conditioning the GP:
      *
-     *    - l: number of sample points
+     *    - _l: number of sample points
      *    - m: number of training data points
      *    - n: number of variables
      *
      *  input data:
-     *          - testX:     ∈ ℝ (l x l)         - number of variables
+     *          - testX:     ∈ ℝ (_l x _l)         - number of variables
      *          - trainX:    ∈ ℝ (m x m)         - training data X
      *          - trainY:    ∈ ℝ (m)             - training data Y
      *          - save:      if 'y' -> save
      *  output data:
-     *          - Mu:        ∈ ℝ (l)             - mean output Y
-     *          - K:         ∈ ℝ (l x l)         - covariance matrix
+     *          - Mu:        ∈ ℝ (_l)             - mean output Y
+     *          - K:         ∈ ℝ (_l x _l)         - covariance matrix
      *
      *  description:
      *          this function enables the user to condition the GP.
      *          the details of these equations can be found in Rasmussen page 16, equations 2.22-24:
      *
      *          mean:
-     *              Bar* = K* @ [K + variance * I]^-1 @ y_train
+     *              Bar* = K* @ [K + variance * I]^-1 @ _y_train
      *
      *          covariance:
-     *              Cov(f*): K** - K* @ [K + variance * I]^-1 @ K*
+     *              _Cov(f*): K** - K* @ [K + variance * I]^-1 @ K*
      *              ** Note: the covariance between the outputs is written as a function of inputs
      *                  -> cov(f(x_p), f(x_q)) = k(xp, xq) = exp(-1/2 * norm(x_p - x_q, 2)^2)
      *                  -> Rasmussen page 14, equation 2.16

@@ -11,10 +11,10 @@ private:
     // MEMBER VARIABLES
 
     // opt constraints, sim settings, and GP model
-    constraints     _c;
-    sim             _s;
-    GaussianProcess _model;
-    std::string     _file_path;
+    constraints         _c;
+    sim                 _s;
+    GaussianProcess     _model;
+    std::string         _file_path;
 
     // gp model parameters
     std::vector<double> _model_params; 
@@ -24,41 +24,39 @@ private:
     int                 _num_evals; 
     
 
-    // data 
+    // data matrices
     std::vector<bopt> _bopti;
-    Eigen::MatrixXd* x_train     = new Eigen::MatrixXd;
-    Eigen::VectorXd* y_train     = new Eigen::VectorXd;
-    Eigen::VectorXd* y_train_std = new Eigen::VectorXd;
+    Eigen::MatrixXd *_x_train;
+    Eigen::VectorXd *_y_train;
+    Eigen::VectorXd *_y_train_std;
 
-    Eigen::MatrixXd* x_val       = new Eigen::MatrixXd;
-    Eigen::VectorXd* y_val       = new Eigen::VectorXd;
+    Eigen::MatrixXd *_x_val;
+    Eigen::VectorXd *_y_val;
 
-    Eigen::MatrixXd* x_test      = new Eigen::MatrixXd; 
-    Eigen::VectorXd* y_test      = new Eigen::VectorXd;
-    Eigen::VectorXd* y_test_std  = new Eigen::VectorXd;
+    Eigen::MatrixXd *_x_test;
+    Eigen::VectorXd *_y_test;
+    Eigen::VectorXd *_y_test_std;
 
     // sampling 
-    Eigen::MatrixXd *x_sample      = new Eigen::MatrixXd;
-    Eigen::VectorXd *y_sample_mean = new Eigen::VectorXd;
-    Eigen::VectorXd *y_sample_std  = new Eigen::VectorXd; 
-    Eigen::VectorXd *conf_bound    = new Eigen::VectorXd;
+    Eigen::MatrixXd *_x_sample;
+    Eigen::VectorXd *_y_sample_mean;
+    Eigen::VectorXd *_y_sample_std;
+    Eigen::VectorXd *_conf_bound;
 
     // PRIVATE MEMBER FUNCTIONS
-    void build_dataset(std::vector<bopt> &BOPTI, 
-                       Eigen::MatrixXd   &X_TRAIN,
-                       Eigen::VectorXd   &Y_TRAIN);
+    void build_dataset(std::vector<bopt> &bopti, 
+                       Eigen::MatrixXd   &x_train,
+                       Eigen::VectorXd   &y_train);
 
-    void build_dataset(std::vector<bopt> &BOPTI,
-                                Eigen::MatrixXd   &X_TRAIN, 
-                                Eigen::VectorXd   &Y_TRAIN,
-                                Eigen::MatrixXd   &X_VAL,   
-                                Eigen::VectorXd   &Y_VAL, 
-                                Eigen::MatrixXd   &X_TEST, 
-                                Eigen::VectorXd   &Y_TEST);
+    void build_dataset(std::vector<bopt> &bopti,
+                                Eigen::MatrixXd   &x_train, 
+                                Eigen::VectorXd   &y_train,
+                                Eigen::MatrixXd   &x_val,   
+                                Eigen::VectorXd   &y_val);
 
     void gen_test_points(Eigen::MatrixXd &_x_sample); 
 
-    void store_tot_data(std::vector<bopt> &BOPTI, int num_sims); 
+    void store_tot_data(std::vector<bopt> &bopti, int num_sims); 
 
 public:
 
@@ -73,7 +71,7 @@ public:
 
 
     // PUBLIC MEMBER FUNCTIONS
-    void load_data(std::vector<bopt> &BOPTI, bool validate); 
+    void load_data(std::vector<bopt> &bopti, bool validate); 
     
     void condition_model(bool pre_learned); 
     void condition_model(); 
