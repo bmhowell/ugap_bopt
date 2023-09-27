@@ -41,6 +41,5 @@ find_package(LAPACK REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} 
                       Eigen3::Eigen ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES}
-                      OpenMP::OpenMP_CXX
-                      dl m)
+                      OpenMP::OpenMP_CXX)
 

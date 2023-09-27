@@ -1,29 +1,27 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
-#pragma once
+// Copyright 2023 Brian Howell
+// MIT License
+// Project: BayesOpt
 
+#ifndef SRC_COMMON_H_
+#define SRC_COMMON_H_
+
+#include <Eigen/Dense>
+#include <omp.h>
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <string>
-#include <chrono>
-#include <cmath>
+#include <fstream>
 #include <random>
+#include <cmath>
 #include <stdexcept>
-#include <Eigen/Dense>
+#include <chrono>
 #define EIGEN_USE_BLAS
-#include <omp.h>
-
-// Program Constants
-// #define TFINAL   30.0
-// #define NODE     11        // {11,     15,     21,   25,     31,     41,   51}
-// #define DT       1.5e-3    // {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5} (FOR SHANNA DM0)
 
 // Function type definition
-typedef double (*FunctionPtr)(int); // Change the return type and parameter as needed
+typedef double (*FunctionPtr)(int);
 
 // Optimization structs
-typedef struct gen_alg_params{
+typedef struct gen_alg_params {
     int pop;      // population size
     int P;        // num parents
     int C;        // num children
@@ -31,7 +29,7 @@ typedef struct gen_alg_params{
 } gen_alg_parms;
 
 // input/output BOpt data structure
-typedef struct bopt{
+typedef struct bopt {
     float temp;    // temperature
     float rp;      // particle radius
     float vp;      // volume fraction
@@ -76,21 +74,31 @@ typedef struct constraints {
           min_vp(minVp), max_vp(maxVp), min_uvi(minUvi), max_uvi(maxUvi),
           min_uvt(minUvt), max_uvt(maxUvt) {
     }
-
 } constraints;
 
-
 // sim settings
-typedef struct sim{
+typedef struct sim {
     int method;         // simulation method
     int save_voxel;     // save voxel data
     int save_density;   // save density data
     bool bootstrap;     // bootstrap
     int time_stepping;  // representing with dt/node pair
 
-    static constexpr double DT[7]   = {1.5e-3, 7.5e-4,   3.5e-4, 2.5e-4, 1.5e-4, 9.25e-5, 5.9e-5};
-    static constexpr int    NODE[7] = {11,     15,     21,   25,     31,     41,   51};
-    
+    static constexpr double DT[7]   = {1.5e-3,
+                                       7.5e-4,
+                                       3.5e-4,
+                                       2.5e-4,
+                                       1.5e-4,
+                                       9.25e-5,
+                                       5.9e-5};
+    static constexpr int    NODE[7] = {11,
+                                       15,
+                                       21,
+                                       25,
+                                       31,
+                                       41,
+                                       51};
+
     float  tfinal  = 30.;   // final time
     double dt;              // time step
     int    node;            // number of nodes
@@ -107,11 +115,17 @@ typedef struct sim{
     }
 
     // overload constructor
-    sim(int method, int save_voxel, int save_density, int bootstrap, int time_stepping)
-        : method(method), save_voxel(save_voxel), 
-          save_density(save_density), bootstrap(bootstrap), 
+    sim(int method,
+        int save_voxel,
+        int save_density,
+        int bootstrap,
+        int time_stepping)
+        : method(method),
+          save_voxel(save_voxel),
+          save_density(save_density),
+          bootstrap(bootstrap),
           time_stepping(time_stepping) {
-
+        // set dt and node spacing
         dt   = DT[time_stepping];
         node = NODE[time_stepping];
     }
@@ -120,8 +134,6 @@ typedef struct sim{
         dt = DT[time_stepping];
         node = NODE[time_stepping];
     }
-
 } sim;
 
-
-#endif
+#endif  // SRC_COMMON_H_

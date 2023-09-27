@@ -1,105 +1,116 @@
 #include "Voxel.h"
 
-Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULTI_THREAD){
+Voxel::Voxel(float tf, 
+             double dt,
+             int n,
+             int idsim,
+             double temp,
+             float uvi,
+             float uvt,
+             std::string file_path,
+             bool multi_thread) {
 
     // MEMBER VARIABLES
     // representative volume element RVE simulation parameters
-    _t_final = TF;                                               // |    s    |  final time
-    _dt      = DT;                                               // |    s    |  time step
-    _nodes   = N;                                                // | unitless|  total number of _nodes
-    _sim_id  = IDSIM;                                            // |   ---   |  simulation id
+    _t_final = tf;                                               // |    s    |  final time
+    _dt      = dt;                                               // |    s    |  time step
+    _nodes   = n;                                                // | unitless|  total number of _nodes
+    _sim_id  = idsim;                                            // |   ---   |  simulation id
     _theta0  = temp;                                             // |    K    | initial and ambient temperature
-    _I0      = UVI;                                              // |  W/m^2  |  UV intensity
-    _uvt     = UVT;                                              // |    s    | uv exposure time
-    obj     = 1000.;                                            // |   ---   |  objective function
+    _I0      = uvi;                                              // |  W/m^2  |  UV intensity
+    _uvt     = uvt;                                              // |    s    | uv exposure time
+    _obj     = 1000.;                                            // |   ---   |  objective function
 
-    multi_thread = MULTI_THREAD;
+    _multi_thread = multi_thread;
     
     // set file path
-    file_path = FILE_PATH;                                      // |   ---   |  file path
+    file_path = file_path;                           // |   ---   |  file path
 
-    _interfacial_nodes = 1;                                      // |   ---   |  interfacial thickness parameter
-    _len_block         = 0.00084;                                // |    m    |  sample length
-    _h                 = (double) _len_block / (_nodes - 1);       // |    m    |  spatial discretization
-    _N_VOL_NODES       = _nodes * _nodes * _nodes;                  // | unitless|  total number of _nodes in RVE
-    _N_PLANE_NODES     = _nodes * _nodes;                          // | unitless|  total number of _nodes in plane of RVE
-    _coord_map_const   = _len_block / _nodes; 
+    _interfacial_nodes = 1;                          // |   ---   |  interfacial thickness parameter
+    _len_block         = 0.00084;                    // |    m    |  sample length
+    _h                 = _len_block / (_nodes - 1);  // |    m    |  spatial discretization
+    _N_VOL_NODES       = _nodes * _nodes * _nodes;   // | unitless|  total number of _nodes in RVE
+    _N_PLANE_NODES     = _nodes * _nodes;            // | unitless|  total number of _nodes in plane of RVE
+    _coord_map_const   = _len_block / _nodes;
 
     // formulation - wt. percent
-    _percent_PI    = 0.0333;                                     // |   wt.%  | weight percent of photo initiator
-    _percent_PEA   = 0.15;                                       // |   wt.%  | weight percent of PEA
-    _percent_HDDA  = 0.0168;                                     // |   wt.%  | weight percent of HDDA
-    _percent_8025D = 0.4084;                                     // |   wt.%  | weight percent of 8025D
-    _percent_8025E = 0.0408;                                     // |   wt.%  | weight percent of 8025E
-    _percent_E4396 = 0.3507;                                     // |   wt.%  | weight percent of HDDA
-    _percent_M = _percent_PEA + _percent_HDDA;                     // |   wt.%  | weight percent of monomer
+    _percent_PI    = 0.0333;                         // |   wt.%  | weight percent of photo initiator
+    _percent_PEA   = 0.15;                           // |   wt.%  | weight percent of PEA
+    _percent_HDDA  = 0.0168;                         // |   wt.%  | weight percent of HDDA
+    _percent_8025D = 0.4084;                         // |   wt.%  | weight percent of 8025D
+    _percent_8025E = 0.0408;                         // |   wt.%  | weight percent of 8025E
+    _percent_E4396 = 0.3507;                         // |   wt.%  | weight percent of HDDA
+    _percent_M = _percent_PEA
+               + _percent_HDDA;                      // |   wt.%  | weight percent of monomer
 
     // physical properties
     // densities and molecular weights
-    _rho_PEA = 1020;                                             // | kg/m^3  | _density of PEA (estimated)
-    _rho_HDDA = 1020;                                            // | kg/m^3  | _density of HDDA (estimated)
-    _rho_E4396 = 1100;                                           // | kg/m^3  | _density of EBECRYL 4396
-    _rho_M = 0.899 * _rho_PEA + 0.101 * _rho_HDDA;                 // | kg/m^3  | weighted average _density of monomer
-    _rho_P = 0.03 * _rho_HDDA + 0.29 * _rho_PEA + 0.68 * _rho_E4396;// | kg/m^3  | weighted average _density of polymer
-    _rho_UGAP = 1840;                                            // | kg/m^3  | estimated _density of UGAP
-    _rho_nacl = 2170;                                            // | kg/m^3  | estimated _density of NaCl
+    _rho_PEA = 1020;                                 // | kg/m^3  | _density of PEA (estimated)
+    _rho_HDDA = 1020;                                // | kg/m^3  | _density of HDDA (estimated)
+    _rho_E4396 = 1100;                               // | kg/m^3  | _density of EBECRYL 4396
+    _rho_M = 0.899 * _rho_PEA 
+           + 0.101 * _rho_HDDA;                      // | kg/m^3  | weighted average _density of monomer
+    _rho_P = 0.03 * _rho_HDDA
+           + 0.29 * _rho_PEA
+           + 0.68 * _rho_E4396;                      // | kg/m^3  | weighted average _density of polymer
+    _rho_UGAP = 1840;                                // | kg/m^3  | estimated _density of UGAP
+    _rho_nacl = 2170;                                // | kg/m^3  | estimated _density of NaCl
 
-    _mw_PEA = 0.19221;                                           // |  kg/mol | molecular weight of PEA
-    _mw_HDDA = 0.226;                                            // |  kg/mol | molecular weight of HDDA
-    _mw_M = 0.899 * _mw_PEA + 0.101 * _mw_HDDA;                    // |  kg/mol | weighted average molecular weight of monomer
-    _mw_PI = 0.4185;                                             // |  kg/mol | molecular weight of photo initiator
+    _mw_PEA = 0.19221;                               // |  kg/mol | molecular weight of PEA
+    _mw_HDDA = 0.226;                                // |  kg/mol | molecular weight of HDDA
+    _mw_M = 0.899 * _mw_PEA + 0.101 * _mw_HDDA;      // |  kg/mol | weighted average molecular weight of monomer
+    _mw_PI = 0.4185;                                 // |  kg/mol | molecular weight of photo initiator
 
-    _basis_wt = 0.5;                                             // |   kg    | arbitrary starting ink weight
-    _basis_vol = _basis_wt / _rho_UGAP;                            // |   m^3   | arbitrary starting ink volume
-    _mol_PI = _basis_wt * _percent_PI / _mw_PI;                     // |   mol   | required PI for basis weight
-    _mol_M = _basis_wt * _percent_M / _mw_M;                        // |   mol   | required monomer for basis weight
-    _c_M0 = _mol_M / _basis_vol;                                   // | mol/m^3 | initial concentration of monomer
-    _c_PI0 = _mol_PI / _basis_vol;                                 // | mol/m^3 | initial concentration of photoinitiator
-    _c_NaCl = 37241.4;                                           // | mol/m^3 | concentration of NaCl
+    _basis_wt = 0.5;                                 // |   kg    | arbitrary starting ink weight
+    _basis_vol = _basis_wt / _rho_UGAP;              // |   m^3   | arbitrary starting ink volume
+    _mol_PI = _basis_wt * _percent_PI / _mw_PI;      // |   mol   | required PI for basis weight
+    _mol_M = _basis_wt * _percent_M / _mw_M;         // |   mol   | required monomer for basis weight
+    _c_M0 = _mol_M / _basis_vol;                     // | mol/m^3 | initial concentration of monomer
+    _c_PI0 = _mol_PI / _basis_vol;                   // | mol/m^3 | initial concentration of photoinitiator
+    _c_NaCl = 37241.4;                               // | mol/m^3 | concentration of NaCl
 
     // diffusion properties
-    _Dm0 = 2.36e-6;                                              // |  m^2/s  | diffusion c pre-exponential, monomer (shanna lit.)
-    _Am = 0.66;                                                  // | unitless| diffusion constant parameter, monomer (bowman lit.)
+    _Dm0 = 2.36e-6;          // |  m^2/s  | diffusion c pre-exponential, monomer (shanna lit.)
+    _Am = 0.66;              // | unitless| diffusion constant parameter, monomer (bowman lit.)
 
     // bowman reaction parameters
-    _Rg       = 8.3145;                                          // | J/mol K | universal gas constant
-    _alpha_P  = 0.000075;                                        // |   1/K   | coefficent of thermal expansion, polymerization (taki + bowman lit.)
-    _alpha_M  = 0.0005;                                          // |   1/K   | coefficent of thermal expansion, monomer (taki + bowman lit.)
-    _theta_gP = 236.75;                                          // |    K    | glass transition temperature, polymer UGAP (DMA MEASURED)
-    _theta_gM = 213.0;                                           // |    K    | glass transition temperature, monomer (bowman)
+    _Rg       = 8.3145;      // |   1/K   | coefficent of thermal expansion, polymerization (taki + bowman lit.)
+    _alpha_M  = 0.0005;      // |   1/K   | coefficent of thermal expansion, monomer (taki + bowman lit.)
+    _theta_gP = 236.75;      // |    K    | glass transition temperature, polymer UGAP (DMA MEASURED)
+    _theta_gM = 213.0;       // |    K    | glass transition temperature, monomer (bowman)
 
-    _k_P0 = 1.6e3;                                               // |m^3/mol s| true kinetic constant, polymerization (bowman lit) / 
-    _E_P  = 18.23e3;                                             // |  J/mol  | activation energy, polymerization (bowman lit. 1) /
-    _A_Dp = 0.66;                                                // | unitless| diffusion parameter, polymerization (bowman lit.)
-    _f_cp = 4.2e-2;                                              // | unitless| critical free volume, polymerization (SHANNA lit.)
+    _k_P0 = 1.6e3;           // |m^3/mol s| true kinetic constant, polymerization (bowman lit)
+    _E_P  = 18.23e3;         // |  J/mol  | activation energy, polymerization (bowman lit. 1)
+    _A_Dp = 0.66;            // | unitless| diffusion parameter, polymerization (bowman lit.)
+    _f_cp = 4.2e-2;          // | unitless| critical free volume, polymerization (SHANNA lit.)
     
-    _k_T0 = 3.6e3;                                               // |m^3/mol s| true kinetic constant, termination (shanna lit.)/ 
-    _E_T  = 2.94e3;                                              // |  J/mol  | activation energy, termination (bowman lit.)
-    _A_Dt = 1.2;                                                 // | unitless| activation energy, termination (bowman lit. MODIFIED?)
-    _f_ct = 6.0e-2;                                              // | unitless| critical free volume, termination (bowman lit.) / 
-    _R_rd = 11.;                                                 // |m^3/mol  | reaction diffusion parameter (taki lit.)
+    _k_T0 = 3.6e3;           // |m^3/mol s| true kinetic constant, termination (shanna lit.)
+    _E_T  = 2.94e3;          // |  J/mol  | activation energy, termination (bowman lit.)
+    _A_Dt = 1.2;             // | unitless| activation energy, termination (bowman lit.)
+    _f_ct = 6.0e-2;          // | unitless| critical free volume, termination (bowman lit.)
+    _R_rd = 11.;             // |m^3/mol  | reaction diffusion parameter (taki lit.)
 
-    _k_I0 = 5.1e-4;                                              // |m^3/mol s| primary radical rate constant (TRIAL/ERROR METHOD) / 
-    _E_I  = 18.23e3;                                             // |  J/mol  | activation energy, initiation (bowman lit.)
-    _A_I  = 0.66;                                                // | unitless| diffusion parameter, initiation (bowman lit.)
-    _f_ci = 0.042;                                               // | unitless| critical free volume, initiation (bowman lit.)
+    _k_I0 = 5.1e-4;          // |m^3/mol s| primary radical rate constant (TRIAL/ERROR METHOD) / 
+    _E_I  = 18.23e3;         // |  J/mol  | activation energy, initiation (bowman lit.)
+    _A_I  = 0.66;            // | unitless| diffusion parameter, initiation (bowman lit.)
+    _f_ci = 0.042;           // | unitless| critical free volume, initiation (bowman lit.)
 
     // thermal properties
-    _dHp            = 5.48e4;                                    // |  J/mol  | heat of polymerization of acrylate monomers (bowman lit.)
-    _Cp_nacl        = 880;                                       // | J/kg/K  | heat capacity of NaCl
-    _Cp_pea         = 180.3;                                     // | J/mol/K | heat capacity of PEA @ 298K - https://polymerdatabase.com/polymer%20physics/Cp%20Table.html
-    _Cp_pea        /= _mw_PEA;                                    // | J/kg/K  | convert units
-    _Cp_hdda        = 202.9;                                     // | J/mol/K | solid heat capacity of HDDA - https://webbook.nist.gov/cgi/cbook.cgi?ID=C629118&Units=SI&Mask=1F
-    _Cp_hdda       /= _mw_HDDA;                                   // | J/kg/K  | convert units
-    _K_thermal_nacl = 0.069;                                     // | W/m/K   | thermal conductivity
+    _dHp          = 5.48e4;    // |  J/mol  | heat of polymerization of acrylate monomers (bowman lit.)
+    _Cp_nacl      = 880;       // | J/kg/K  | heat capacity of NaCl
+    _Cp_pea       = 180.3;     // | J/mol/K | heat capacity of PEA @ 298K - https://polymerdatabase.com/polymer%20physics/Cp%20Table.html
+    _Cp_pea      /= _mw_PEA;   // | J/kg/K  | convert units
+    _Cp_hdda      = 202.9;     // | J/mol/K | solid heat capacity of HDDA - https://webbook.nist.gov/cgi/cbook.cgi?ID=C629118&Units=SI&Mask=1F
+    _Cp_hdda     /= _mw_HDDA;  // | J/kg/K  | convert units
+    _K_therm_nacl = 0.069;     // | W/m/K   | thermal conductivity
 
-    _Cp_shanna        = 1700;                                    // | J/kg/K  | shanna's heat capacity
-    _K_thermal_shanna = 0.2;                                     // | W/m/K   | shanna's thermal conductivity
+    _Cp_shanna        = 1700;  // | J/kg/K  | shanna's heat capacity
+    _K_thermal_shanna = 0.2;   // | W/m/K   | shanna's thermal conductivity
 
     // photo initiator properties
-    _eps      = 9.66e-1;                                         // |m^3/mol m| initiator absorbtivity
-    _eps_nacl = 7e-4;                                            // |   1/m   | NaCl absorbtivity
-    _phi      = 0.6;                                             // | unitless| quantum yield inititation
+    _eps      = 9.66e-1;       // |m^3/mol m| initiator absorbtivity
+    _eps_nacl = 7e-4;          // |   1/m   | NaCl absorbtivity
+    _phi      = 0.6;           // | unitless| quantum yield inititation
 
     // numerical method parameters: backward euler
     _tol = 5e-2;
@@ -107,46 +118,79 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
 
     // spatial discretization -> [0., _h, 2*_h, ..., L]
     double z_increment = 0.0;
-    for (int i=0; i<_nodes; i++){
+    for (int i=0; i<_nodes; i++) {
         _z_space.push_back(z_increment);
         z_increment += _h;
     }
-
-
-
-    /* initialize voxel values */
-
+    
     // UV gradient
     std::fill_n(std::back_inserter(_uv_values),     _N_VOL_NODES, 0.);
 
     // material properties
-    std::fill_n(std::back_inserter(_density),       _N_VOL_NODES, _rho_UGAP);
-    std::fill_n(std::back_inserter(_heat_capacity), _N_VOL_NODES, _Cp_shanna);
-    std::fill_n(std::back_inserter(_therm_cond),    _N_VOL_NODES, _K_thermal_shanna);
-    std::fill_n(std::back_inserter(_material_type), _N_VOL_NODES, 1);                // UGAP=1, particle=0
-    std::fill_n(std::back_inserter(_f_free_volume), _N_VOL_NODES, 0.);
+    // density
+    std::fill_n(std::back_inserter(_density),
+                _N_VOL_NODES,
+                _rho_UGAP);
+    // heat capacity
+    std::fill_n(std::back_inserter(_heat_capacity),
+                _N_VOL_NODES,
+                _Cp_shanna);
+    // thermal conductivity
+    std::fill_n(std::back_inserter(_therm_cond),
+                _N_VOL_NODES,
+                _K_thermal_shanna);
+    // material type: UGAP=1, particle=0
+    std::fill_n(std::back_inserter(_material_type), 
+                _N_VOL_NODES,
+                1);  
+    std::fill_n(std::back_inserter(_f_free_volume),
+                _N_VOL_NODES,
+                0.);
 
     // concentrations
-    std::fill_n(std::back_inserter(_c_PI),          _N_VOL_NODES, _c_PI0);
-    std::fill_n(std::back_inserter(_c_M),           _N_VOL_NODES, _c_M0);
-    std::fill_n(std::back_inserter(_c_PIdot),       _N_VOL_NODES, 0.);
-    std::fill_n(std::back_inserter(_c_Mdot),        _N_VOL_NODES, 0.);
+    std::fill_n(std::back_inserter(_c_PI),
+                _N_VOL_NODES,
+                _c_PI0);
+    std::fill_n(std::back_inserter(_c_M),
+                _N_VOL_NODES,
+                _c_M0);
+    std::fill_n(std::back_inserter(_c_PIdot),
+                _N_VOL_NODES,
+                0.);
+    std::fill_n(std::back_inserter(_c_Mdot),
+                _N_VOL_NODES,
+                0.);
     
     // diffusion values
-    std::fill_n(std::back_inserter(_diff_pdot),     _N_VOL_NODES, 0.);
-    std::fill_n(std::back_inserter(_diff_mdot),     _N_VOL_NODES, 0.);
-    std::fill_n(std::back_inserter(_diff_m)   ,     _N_VOL_NODES, 0.);
-    std::fill_n(std::back_inserter(_diff_theta),    _N_VOL_NODES, 0.);
+    std::fill_n(std::back_inserter(_diff_pdot),
+                _N_VOL_NODES,
+                0.);
+    std::fill_n(std::back_inserter(_diff_mdot),
+                _N_VOL_NODES,
+                0.);
+    std::fill_n(std::back_inserter(_diff_m),
+                _N_VOL_NODES,
+                0.);
+    std::fill_n(std::back_inserter(_diff_theta),
+                _N_VOL_NODES,
+                0.);
 
     // temperature
-    std::fill_n(std::back_inserter(_theta),         _N_VOL_NODES, _theta0);
+    std::fill_n(std::back_inserter(_theta),
+                _N_VOL_NODES,
+                _theta0);
 
     // rate constants
-    std::fill_n(std::back_inserter(_k_t),           _N_VOL_NODES, _k_T0);
-    std::fill_n(std::back_inserter(_k_p),           _N_VOL_NODES, _k_P0);
-    std::fill_n(std::back_inserter(_k_i),           _N_VOL_NODES, _k_I0);
+    std::fill_n(std::back_inserter(_k_t),
+                _N_VOL_NODES, 
+                _k_T0);
+    std::fill_n(std::back_inserter(_k_p),
+                _N_VOL_NODES, _k_P0);
+    std::fill_n(std::back_inserter(_k_i),
+                _N_VOL_NODES,
+                _k_I0);
 
-    if (!multi_thread){
+    if (!_multi_thread){
         std::cout << "==================================" << std::endl;
         std::cout << "Initial concentrations (mol/m^3): " << std::endl;
         std::cout << "_c_M0: "  << _c_M0   << std::endl;
@@ -159,7 +203,6 @@ Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, floa
     _current_coords[0] = 0;
     _current_coords[1] = 0;
     _current_coords[2] = 0;
-
 }
 
 // Destructor
@@ -210,10 +253,10 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
     double n_particle_nodes = std::round(_N_VOL_NODES * solids_loading);
     double particle_distance, node_particle, rand_loc;
     int node;
-    rp = radius_1;
-    vp = solids_loading; 
+    _rp = radius_1;
+    _vp = solids_loading; 
 
-    if (!multi_thread){
+    if (!_multi_thread){
         std::cout << "\n--------- ------- ---------" << std::endl;
         std::cout << "--- GENERATING PARTICLES ---" << std::endl;
         std::cout << "--------- ------- ---------" << std::endl;
@@ -228,7 +271,6 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         std::random_device rd{};
         std::mt19937  gen{rd()};
 
-
         std::uniform_real_distribution<> dist{0, 1};
         rand_loc = dist(gen);
 
@@ -239,21 +281,23 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         // step 3: find _nodes that are within the distance of the seed location
         for (int node = 0; node < _N_VOL_NODES; node++){
             Node2Coord(node, _current_coords);
-            particle_distance = sqrt(   SquaredDiff(_current_coords[0] * _coord_map_const, particle_coords[0] * _coord_map_const)
-                                      + SquaredDiff(_current_coords[1] * _coord_map_const, particle_coords[1] * _coord_map_const)
-                                      + SquaredDiff(_current_coords[2] * _coord_map_const, particle_coords[2] * _coord_map_const) );
+            particle_distance = 
+                        sqrt( SquaredDiff(_current_coords[0] * _coord_map_const,
+                                          particle_coords[0] * _coord_map_const)
+                              + SquaredDiff(_current_coords[1] * _coord_map_const,
+                                            particle_coords[1] * _coord_map_const)
+                              + SquaredDiff(_current_coords[2] * _coord_map_const,
+                                            particle_coords[2] * _coord_map_const) 
+                                            );
 
             // check if node is the particle radius range
+            double cond = radius_1 + _interfacial_thick * _h;
             if (particle_distance <= radius_1){
                 _particles_ind.push_back(node);
-            }
-
-            // check if node is in interfacial region (between resin and particle)
-            else if (_interfacial_thick != 0 and particle_distance <= radius_1 + _interfacial_thick * _h){
+            } else if (_interfacial_thick != 0 && particle_distance <= cond){
+                // interfacial region (between resin and particle)
                 _particle_interfacial_nodes.push_back(node);
-            }
-
-            else{
+            } else {
                 continue;
             }
 
@@ -270,7 +314,7 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
             // thermal properties
             _density[_particle_interfacial_nodes[i]]          = (_rho_nacl + _rho_UGAP) / 2;
             _heat_capacity[_particle_interfacial_nodes[i]]    = (_Cp_nacl + _Cp_shanna) / 2;
-            _therm_cond[_particle_interfacial_nodes[i]]       = (_K_thermal_nacl + _K_thermal_shanna) / 2;
+            _therm_cond[_particle_interfacial_nodes[i]]       = (_K_therm_nacl + _K_thermal_shanna) / 2;
 
             // reaction properties
             _k_t[_particle_interfacial_nodes[i]]              = _k_T0;
@@ -290,7 +334,7 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
             // thermal properties
             _density[_particles_ind[i]]                       = _rho_nacl;
             _heat_capacity[_particles_ind[i]]                 = _Cp_nacl;
-            _therm_cond[_particles_ind[i]]                    = _K_thermal_nacl;
+            _therm_cond[_particles_ind[i]]                    = _K_therm_nacl;
 
             // reaction properties
             _k_t[_particles_ind[i]]                           = 0.;
@@ -309,14 +353,14 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         if (counter1 >= 10000000){
             std::cout << "--- PARTICLE ITERATION THRESHOLD ---" << std::endl;
         }
-        if (tot_part_nodes >= n_particle_nodes && !multi_thread){
+        if (tot_part_nodes >= n_particle_nodes && !_multi_thread){
             std::cout << "_N_VOL_NODES: "    << _N_VOL_NODES                          << std::endl;
             std::cout << "tot_part_nodes: " << tot_part_nodes                       << std::endl;
             std::cout << "solids loading: " << (1.0 * tot_part_nodes / _N_VOL_NODES) << std::endl;
         }
     }
 
-    if (!multi_thread){
+    if (!_multi_thread){
         std::cout << "-------------------------------------------"                          << std::endl;
         std::cout << "number of particles generated: "  << counter1                         << std::endl;
         std::cout << "solids loading: "                 << n_particle_nodes / _N_VOL_NODES   << std::endl;
@@ -346,7 +390,8 @@ void Voxel::ComputeRxnRateConstants() {
         if (_material_type[i] != 0){
 
             // bowman (1) equation 20
-            vT = _c_M[i]*_mw_M/_rho_M + (_c_M0-_c_M[i])*_mw_M/_rho_P;
+            vT = _c_M[i]*_mw_M/_rho_M +
+                (_c_M0-_c_M[i])*_mw_M/_rho_P;
 
             // bowman (1) equation 22
             phi_M = _c_M[i]*_mw_M/_rho_M/vT;
@@ -355,10 +400,12 @@ void Voxel::ComputeRxnRateConstants() {
             phi_P = (_c_M0-_c_M[i])*_mw_M/_rho_P/vT;
 
             // bowman (1) equation 24
-            _f_free_volume[i] = 0.025 + _alpha_M*phi_M*(_theta[i]-_theta_gM) + _alpha_P*phi_P*(_theta[i]-_theta_gP);
+            _f_free_volume[i] = 0.025
+                                + _alpha_M*phi_M*(_theta[i]-_theta_gM) 
+                                + _alpha_P*phi_P*(_theta[i]-_theta_gP);
 
             // compute temperature dependent rate constants | bowman (1) equation 17
-            _k_p[i] = _k_P0*exp(-_E_P / _Rg / _theta[i]) / (1 + exp(_A_Dp * (1/_f_free_volume[i] - 1/_f_cp)));
+            _k_p[i] = _k_P0*exp(-_E_P/_Rg/_theta[i]) / (1 + exp(_A_Dp * (1/_f_free_volume[i] - 1/_f_cp)));
             _k_i[i] = _k_I0; 
 
             // bowman (1) equation 18
@@ -367,7 +414,7 @@ void Voxel::ComputeRxnRateConstants() {
             _k_t[i] = _k_T0*exp(-_E_T/_Rg/_theta[i]) / (1+1/denom);
             
 
-        }else{
+        } else {
             // compute reaction rate constants for particles
             _f_free_volume[i] = 0.;
             _k_t[i]           = 0.;
@@ -1475,7 +1522,7 @@ void Voxel::Simulate(int method, int save_voxel){
     int print_iter   = N_TIME_STEPS / 600; 
     std::vector<double> _total_time(N_TIME_STEPS, 0);
 
-    if (!multi_thread){
+    if (!_multi_thread){
         std::cout << "=================================="                                     << std::endl;
         std::cout << "Simulation parameters"                                                  << std::endl;
         std::cout << "_sim_id: "               << _sim_id                                       << std::endl;
@@ -1550,7 +1597,7 @@ void Voxel::Simulate(int method, int save_voxel){
 
         // display time
         _timer += _dt;
-        if ((t + 1) % 100 == 0 && !multi_thread){
+        if ((t + 1) % 100 == 0 && !_multi_thread){
             std::cout << "time: "      << _timer << " / " << _t_final                       << std::endl;
             std::cout << "iteration: " << t + 1 << " / " << N_TIME_STEPS + 1 << std::endl << std::endl;
         }
@@ -1580,35 +1627,36 @@ void Voxel::Simulate(int method, int save_voxel){
         }
     }
 
+    // get average values for total system
     double average_PI    = 0;
     double average_PIdot = 0; 
     double average_Mdot  = 0;  
     double average_M     = 0;
 
     for (int i = 0; i < _N_VOL_NODES; i++){
-        average_PI   += _c_PI[i];
+        average_PI    += _c_PI[i];
         average_PIdot += _c_PIdot[i];
         average_Mdot  += _c_Mdot[i];
-        average_M    += _c_M[i];
+        average_M     += _c_M[i];
     }
 
-    average_PI   /= _N_VOL_NODES;
+    average_PI    /= _N_VOL_NODES;
     average_PIdot /= _N_VOL_NODES;
     average_Mdot  /= _N_VOL_NODES;
-    average_M    /= _N_VOL_NODES;
+    average_M     /= _N_VOL_NODES;
 
     // compute weighted multi objective function
-    obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
+    _obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
     
-    if (!multi_thread){
+    if (!_multi_thread){
         std::cout << "==================================" << std::endl;
         std::cout << "Simulation complete"                << std::endl;
         std::cout << "==================================" << std::endl;
-        std::cout << "obj = " << obj                      << std::endl;
+        std::cout << "_obj = " << _obj                      << std::endl;
         std::cout << "temp: " << _theta0                   << std::endl; 
         std::cout << "_uvt: " << _uvt                       << std::endl; 
         std::cout << "_I0: " << _I0                         << std::endl;
-        std::cout << "rp: " << rp                         << std::endl;
-        std::cout << "vp: " << vp                         << std::endl;
+        std::cout << "_rp: " << _rp                         << std::endl;
+        std::cout << "_vp: " << _vp                         << std::endl;
     }
 }
