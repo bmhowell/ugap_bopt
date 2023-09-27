@@ -1,7 +1,5 @@
 #include "Voxel.h"
 
-// tfinal, dt, node, idsim, temp, rp, vp, uvi, uvt
-
 Voxel::Voxel(float TF, double DT, int N, int IDSIM, double temp, float UVI, float UVT, std::string FILE_PATH, bool MULTI_THREAD){
 
     // MEMBER VARIABLES

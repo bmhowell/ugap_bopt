@@ -4,44 +4,25 @@
 #include "helper_functions.h"
 #include "common.h"
 
-
 int main(int argc, char** argv) {
-
     auto start = std::chrono::high_resolution_clock::now();
 
-    // Parse Args
-    if (find_arg_idx(argc, argv, "-h") >= 0) {
-        std::cout << "Options:" << std::endl;
-        std::cout << "-h: see this help" << std::endl;
-        std::cout << "-n <int>: set number of nodes" << std::endl;
-        std::cout << "-o <filename>: set the output file name" << std::endl;
-        std::cout << "-s <int>: set particle initialization seed" << std::endl;
-        return 0;
-    }
-
-    // if available, define model parameters: length, sigma variance, noise variance
-    bool pre_learned = true; 
-    bool validate    = true; 
-
+    ////////////////////////////  PARSE ARGS  ////////////////////////////
     // optimization constraints (default) and simulation settings (default)
     constraints c; 
     sim         s;
     s.bootstrap = false;
     s.time_stepping = 0;
     s.update_time_stepping_values();
-
+    ////////////////////////////  //////////  ////////////////////////////
     // set file path
     std::string file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_" + std::to_string(s.time_stepping);   // MACBOOK PRO
     // std::string file_path = "/home/brian/Documents/berkeley/ugap_opt/output_" + std::to_string(s.time_stepping);         // LINUX CENTRAL COMPUTING
-    std::cout << "--- THE ADVENTURE BEGINS ---" << std::endl;
-    std::cout << "num cores: "  << omp_get_num_procs() << std::endl;
-    std::cout << " file_path: " << file_path           << std::endl;
-
-    // https://stackoverflow.com/questions/8036474/when-vectors-are-allocated-do-they-use-memory-on-the-heap-or-the-stack
-    std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
+    std::cout << "\n--- THE ADVENTURE BEGINS ---" << std::endl;
 
     // STEP 1: retrieve data set
     int ndata0;
+    std::vector<bopt> *bopti = new std::vector<bopt>; // stores all info (header + elements) on heap
     bool multi_thread = true; 
     if (s.bootstrap){
         ndata0 = 1000; 
@@ -52,123 +33,29 @@ int main(int argc, char** argv) {
     }else{
         ndata0 = read_data(bopti, file_path);
     }
-    
-    // convert data to Eigen matrices
-    Eigen::MatrixXd* x_train     = new Eigen::MatrixXd;
-    Eigen::VectorXd* y_train     = new Eigen::VectorXd;
-    Eigen::VectorXd* y_train_std = new Eigen::VectorXd;
 
-    Eigen::MatrixXd* x_test      = new Eigen::MatrixXd; 
-    Eigen::VectorXd* y_test      = new Eigen::VectorXd;
-    Eigen::VectorXd* y_test_std  = new Eigen::VectorXd;
+    // initialize function approximator and optimizer
+    GaussianProcess model = GaussianProcess("RBF", file_path);
+    BayesianOpt optimizer(model, ndata0, c, s, file_path);
+    optimizer.load_data(*bopti, true);  // (bopti, _validate)
 
-    // split and move data from bopti to corresponding matrices
-    // build_dataset(*bopti, *x_train, *y_train, *x_test, *y_test);  // build dataset for training and testing
-    build_dataset(*bopti, *x_train, *y_train);                      // build dataset for training only
-    
-    // set up gaussian process
-    GaussianProcess model = GaussianProcess("RBF", file_path); 
-    
-    // // pre-learned parameters
-    std::vector<double> model_param;
-    train_prior(model,
-                *x_train, 
-                *y_train, 
-                model_param, 
-                s.time_stepping, 
-                pre_learned);
-    
-    // validate or predict
-    evaluate_model(model, *x_test, *y_test, validate);
-    
-    ////////////   LOOP   ////////////
-    // step 2: evaluate uniform points across domain
-    int num_test = 100;
-    Eigen::MatrixXd *x_sample      = new Eigen::MatrixXd(num_test, 5);
-    Eigen::VectorXd *y_sample_mean = new Eigen::VectorXd(num_test);
-    Eigen::VectorXd *y_sample_std  = new Eigen::VectorXd(num_test); 
-    Eigen::VectorXd *conf_bound    = new Eigen::VectorXd(num_test);
-
-    sample_posterior(model, 
-                     *x_sample, 
-                     *y_sample_mean, 
-                     *y_sample_std, 
-                     c); 
-    acq_ucb(model, 
-            *x_sample, 
-            *y_sample_mean, 
-            *y_sample_std,
-            *conf_bound,  
-            false);
-
+    // train the model (pre-learned)
+    optimizer.condition_model(true);
+    optimizer.evaluate_model();
+    // optimizer.qUCB(false); 
+    // optimizer.evaluate_samples();
 
     
-    // evaluate voxel simulations using all  
-    std::cout << "--- running new evaluations ---" << std::endl;
-    int num_evals = omp_get_num_procs();
-    std::vector<bopt> voxels_evals;
-    #pragma omp parallel for
-    for (int id = 0; id < num_evals; ++id){
-        bopt b; 
-        b.temp = x_sample->coeff(id, 0);
-        b.rp   = x_sample->coeff(id, 1);
-        b.vp   = x_sample->coeff(id, 2); 
-        b.uvi  = x_sample->coeff(id, 3);
-        b.uvt  = x_sample->coeff(id, 4);
 
-        // perform simulation with top candidates
-        Voxel voxel_sim(s.tfinal, s.dt, s.node, id, b.temp, b.uvi, b.uvt, file_path, true);
-
-        voxel_sim.ComputeParticles(b.rp, b.vp); 
-        voxel_sim.Simulate(s.method, s.save_voxel); 
-        b.obj  = voxel_sim.obj; 
-
-        // write individual data to file (prevent accidental loss of data if stopped early)
-        write_to_file(b, s, id, file_path);
-        
-        #pragma omp critical
-        {
-            int thread_id = omp_get_thread_num();
-            voxels_evals.push_back(b); 
-            std::cout << "Thread " << thread_id << ": i = " << id << std::endl;
-        }
-    }
-
-    std::cout << "--- finished new evaluations ---" << std::endl;
-    
-    // concatenate data
-    bopti->insert(bopti->end(), voxels_evals.begin(), voxels_evals.end());
-    store_tot_data(bopti, s, ndata0 + num_evals, file_path);
-    ////////////   END LOOP   ////////////
-
-    delete x_train;
-    delete y_train; 
-    delete y_train_std;
-    
-    delete x_test; 
-    delete y_test; 
-    delete y_test_std;
-
-    delete x_sample; 
-    delete y_sample_mean; 
-    delete y_sample_std; 
-    
-    // delete x_eval;
-    // delete y_eval;
-    delete conf_bound;
-
-    delete bopti;
 
     // Get the current time after the code segment finishes
     auto end = std::chrono::high_resolution_clock::now();
-
-    // Calculate the duration of the code segment in minutes
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
     std::cout << "\n---Time taken by code segment: " << duration  / 60 << " min---" << std::endl;
     
     std::cout << "\nHello World!" << std::endl;
+    delete bopti;
 
-    return 0;
 }
 
 

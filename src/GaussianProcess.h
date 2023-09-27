@@ -9,7 +9,7 @@ private:
     std::string kernel;                                   // covariance kernel specification
     std::string file_path;                                // file path to store data
     
-    bool trained, train_scaled, val_scaled;               // flag to indicate if GP has been trained
+    bool trained, train_scaled, val_scaled, test_scaled;  // flag to indicate if GP has been trained
 
     // initialize covariance matrices
     //      - l --> number of samples
@@ -21,12 +21,16 @@ private:
     // vector and matrix for cholesky decomposition
     Eigen::VectorXd alpha;                                // ∈ ℝ (m)     ⊂ train() | predict() | compute_lml()
     Eigen::MatrixXd L;                                    // ∈ ℝ (m x m) ⊂ train() | predict() | compute_lml()
-    Eigen::MatrixXd V; 
+    Eigen::MatrixXd V;
 
     // data
     Eigen::MatrixXd x_train; 
     Eigen::VectorXd y_train;
     Eigen::VectorXd y_train_std;
+
+    Eigen::MatrixXd x_val; 
+    Eigen::VectorXd y_val; 
+
     Eigen::MatrixXd x_test; 
     Eigen::VectorXd y_test;
     Eigen::VectorXd y_test_std;
@@ -73,6 +77,9 @@ private:
     */
     
     /* scaling data */
+    void scale_data(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, 
+                    Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL);
+
     void scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y);
 
     void scale_data(Eigen::MatrixXd& X_TEST);
@@ -115,7 +122,12 @@ public:
     /* training functions*/
     void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN);
 
-    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN, std::vector<double>& model_param); 
+    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
+               Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL, 
+               std::vector<double>& model_param); 
+    
+    void train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
+               Eigen::MatrixXd& X_VAL,   Eigen::VectorXd& Y_VAL); 
     /* 
         Either: 
             - perform model selection
@@ -123,10 +135,11 @@ public:
     */
 
     /* validation */
-    void validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL);
+    double validate();
 
     /* inference */
     void predict(Eigen::MatrixXd& X_TEST, bool compute_std = true);
+
     /*  Conditioning the GP:
      *
      *    - l: number of sample points
