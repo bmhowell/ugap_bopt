@@ -47,7 +47,7 @@ BayesianOpt::BayesianOpt() {
 
 /* overload constructor */
 BayesianOpt::BayesianOpt(GaussianProcess &model,
-                         int             &n_dim,
+                         const int       &n_dim,
                          constraints     &c,
                          sim             &s,
                          std::string     &file_path) {
@@ -99,125 +99,14 @@ BayesianOpt::~BayesianOpt() {
     delete _y_sample_mean;
     delete _y_sample_std;
     delete _conf_bound;
-}
 
-// PRIVATE MEMBER FUNCTIONS
-void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
-                                Eigen::MatrixXd   &x_train,
-                                Eigen::VectorXd   &y_train) {
-    // build dataset for training only
-    int num_data = bopti.size();
-
-    x_train.resize(num_data, 5);
-    y_train.resize(num_data);
-
-    // populate training and validation sets
-    for (int i = 0; i < num_data; ++i) {
-        x_train(i, 0) = bopti[i].temp;
-        x_train(i, 1) = bopti[i].rp;
-        x_train(i, 2) = bopti[i].vp;
-        x_train(i, 3) = bopti[i].uvi;
-        x_train(i, 4) = bopti[i].uvt;
-        y_train(i)    = bopti[i].obj;
-    }
-}
-
-void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
-                                Eigen::MatrixXd   &x_train,
-                                Eigen::VectorXd   &y_train,
-                                Eigen::MatrixXd   &x_val,
-                                Eigen::VectorXd   &y_val) {
-    // build dataset for training and testing
-
-    // split data into training and validation sets
-    int num_data = bopti.size();
-    int num_train = 0.8 * num_data;
-    int num_val   = 0.1 * num_data;
-
-    std::cout << "\n============== build dataset ==============" << std::endl;
-    std::cout << "num_data: " << num_data << std::endl;
-    std::cout << "num_train: " << num_train << std::endl;
-    std::cout << "num_val: " << num_val << std::endl;
-    std::cout << "===========================================\n" << std::endl;
-
-    // resize x_train, y_train, x_val, and Y_VAL
-    x_train.resize(num_train, 5);
-    y_train.resize(num_train);
-    x_val.resize(num_val, 5);
-    y_val.resize(num_val);
-
-    // shuffle dataset
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(bopti.begin(), bopti.end(), g);
-
-
-    // populate training sets
-    for (int i = 0; i < num_train; ++i) {
-        x_train(i, 0) = bopti[i].temp;
-        x_train(i, 1) = bopti[i].rp;
-        x_train(i, 2) = bopti[i].vp;
-        x_train(i, 3) = bopti[i].uvi;
-        x_train(i, 4) = bopti[i].uvt;
-        y_train(i)    = bopti[i].obj;
-    }
-
-    // populate validation sets
-    for (int i = 0; i < num_val; ++i) {
-        x_val(i, 0) = bopti[i + num_train].temp;
-        x_val(i, 1) = bopti[i + num_train].rp;
-        x_val(i, 2) = bopti[i + num_train].vp;
-        x_val(i, 3) = bopti[i + num_train].uvi;
-        x_val(i, 4) = bopti[i + num_train].uvt;
-        y_val(i)    = bopti[i + num_train].obj;
-    }
-}
-
-void BayesianOpt::gen_test_points(Eigen::MatrixXd &x_smpl) {
-    // initialize input variables
-    std::random_device rd;                          // obtain a rnd num
-    std::mt19937 gen(rd());                         // seed the generator
-    std::uniform_real_distribution<> dis(0., 1.);   // define the range
-
-    for (int ind = 0; ind < x_smpl.rows(); ++ind) {
-        x_smpl(ind, 0) = ((_c).max_temp
-                        - (_c).min_temp) * dis(gen)
-                        + (_c).min_temp;
-        x_smpl(ind, 1) = ((_c).max_rp
-                        - (_c).min_rp)   * dis(gen)
-                        + (_c).min_rp;
-        x_smpl(ind, 2) = ((_c).max_vp
-                        - (_c).min_vp)   * dis(gen)
-                        + (_c).min_vp;
-        x_smpl(ind, 3) = ((_c).max_uvi
-                        - (_c).min_uvi)  * dis(gen)
-                        + (_c).min_uvi;
-        x_smpl(ind, 4) = ((_c).max_uvt
-                         - (_c).min_uvt)  * dis(gen)
-                         + (_c).min_uvt;
-    }
-}
-
-void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
-    std::cout << "\n--- storing data ---\n" << std::endl;
-    std::ofstream my_file;
-    my_file.open(_file_path + "/tot_bopt.dat");
-    my_file << "temp, rp, vp, uvi, uvt, obj, tn" << std::endl;
-
-    for (int id = 0; id < num_sims; ++id) {
-        my_file << bopti[id].temp << ", "
-                << bopti[id].rp   << ", "
-                << bopti[id].vp   << ", "
-                << bopti[id].uvi  << ", "
-                << bopti[id].uvt  << ", "
-                << bopti[id].obj  << ", "
-                << _s.time_stepping << std::endl;
-    }
-    my_file.close();
+    // delete top performers
+    delete _x_top; 
+    delete _y_top; 
 }
 
 // PUBLIC MEMBER FUNCTIONS
-void BayesianOpt::load_data(std::vector<bopt> &bopti, bool validate) {
+void BayesianOpt::load_data(std::vector<bopt> &bopti, const bool validate) {
     _bopti    = bopti;
     _validate = validate;
 
@@ -230,7 +119,7 @@ void BayesianOpt::load_data(std::vector<bopt> &bopti, bool validate) {
     }
 }
 
-void BayesianOpt::condition_model(bool pre_learned) {
+void BayesianOpt::condition_model(const bool pre_learned) {
     // ADD ASSERTION TO CHECK IF DATA IS LOADED
     if (pre_learned) {
         switch (_s.time_stepping) {
@@ -292,7 +181,10 @@ void BayesianOpt::sample_posterior() {
     _y_sample_std->array()  = _model.get_y_test_std().array();
 }
 
-void BayesianOpt::qUCB(bool _lcb) {
+void BayesianOpt::qUCB(const bool _lcb) {
+    """
+        RECORD TOP PERFORMERS
+    """
     if (_lcb) {
         _conf_bound->array() = _y_sample_mean->array()
                              - 1.96 * _y_sample_std->array();
@@ -311,6 +203,8 @@ void BayesianOpt::qUCB(bool _lcb) {
 
         *_conf_bound = (*_conf_bound)(inds_s);
         *_x_smpl   = (*_x_smpl)(inds_s, Eigen::all);
+        std::cout << "_conf_bound: " << _conf_bound->transpose() << std::endl;
+
     } else {
         qUCB();
     }
@@ -400,5 +294,138 @@ void BayesianOpt::optimize() {
     // evaluate top candidates
     this->evaluate_samples();
 
-    // update data
+    // run loop
+    for (int iter = 1; iter < 10; ++iter) {
+        // update data
+        this->build_dataset(_bopti, *_x_train, *_y_train);
+
+        // train model on new data
+        this->condition_model();
+
+        // uniformly sample domain
+        this->sample_posterior();
+
+        // compute confidence bound
+        this->qUCB(true);
+
+        // evaluate top candidates
+        this->evaluate_samples();
+    }
 }
+
+// PRIVATE MEMBER FUNCTIONS
+void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
+                                Eigen::MatrixXd   &x_train,
+                                Eigen::VectorXd   &y_train) {
+    // build dataset for training only
+    int num_data = bopti.size();
+
+    x_train.resize(num_data, 5);
+    y_train.resize(num_data);
+
+    // populate training and validation sets
+    for (int i = 0; i < num_data; ++i) {
+        x_train(i, 0) = bopti[i].temp;
+        x_train(i, 1) = bopti[i].rp;
+        x_train(i, 2) = bopti[i].vp;
+        x_train(i, 3) = bopti[i].uvi;
+        x_train(i, 4) = bopti[i].uvt;
+        y_train(i)    = bopti[i].obj;
+    }
+}
+
+void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
+                                Eigen::MatrixXd   &x_train,
+                                Eigen::VectorXd   &y_train,
+                                Eigen::MatrixXd   &x_val,
+                                Eigen::VectorXd   &y_val) {
+    // build dataset for training and testing
+
+    // split data into training and validation sets
+    int num_data = bopti.size();
+    int num_train = 0.8 * num_data;
+    int num_val   = 0.1 * num_data;
+
+    std::cout << "\n============== build dataset ==============" << std::endl;
+    std::cout << "num_data: "  << num_data << std::endl;
+    std::cout << "num_train: " << num_train << std::endl;
+    std::cout << "num_val: "   << num_val << std::endl;
+    std::cout << "===========================================\n" << std::endl;
+
+    // resize x_train, y_train, x_val, and Y_VAL
+    x_train.resize(num_train, 5);
+    y_train.resize(num_train);
+    x_val.resize(num_val, 5);
+    y_val.resize(num_val);
+
+    // shuffle dataset
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(bopti.begin(), bopti.end(), g);
+
+
+    // populate training sets
+    for (int i = 0; i < num_train; ++i) {
+        x_train(i, 0) = bopti[i].temp;
+        x_train(i, 1) = bopti[i].rp;
+        x_train(i, 2) = bopti[i].vp;
+        x_train(i, 3) = bopti[i].uvi;
+        x_train(i, 4) = bopti[i].uvt;
+        y_train(i)    = bopti[i].obj;
+    }
+
+    // populate validation sets
+    for (int i = 0; i < num_val; ++i) {
+        x_val(i, 0) = bopti[i + num_train].temp;
+        x_val(i, 1) = bopti[i + num_train].rp;
+        x_val(i, 2) = bopti[i + num_train].vp;
+        x_val(i, 3) = bopti[i + num_train].uvi;
+        x_val(i, 4) = bopti[i + num_train].uvt;
+        y_val(i)    = bopti[i + num_train].obj;
+    }
+}
+
+void BayesianOpt::gen_test_points(Eigen::MatrixXd &x_smpl) {
+    // initialize input variables
+    std::random_device rd;                          // obtain a rnd num
+    std::mt19937 gen(rd());                         // seed the generator
+    std::uniform_real_distribution<> dis(0., 1.);   // define the range
+
+    for (int ind = 0; ind < x_smpl.rows(); ++ind) {
+        x_smpl(ind, 0) = ((_c).max_temp
+                        - (_c).min_temp) * dis(gen)
+                        + (_c).min_temp;
+        x_smpl(ind, 1) = ((_c).max_rp
+                        - (_c).min_rp)   * dis(gen)
+                        + (_c).min_rp;
+        x_smpl(ind, 2) = ((_c).max_vp
+                        - (_c).min_vp)   * dis(gen)
+                        + (_c).min_vp;
+        x_smpl(ind, 3) = ((_c).max_uvi
+                        - (_c).min_uvi)  * dis(gen)
+                        + (_c).min_uvi;
+        x_smpl(ind, 4) = ((_c).max_uvt
+                        - (_c).min_uvt)  * dis(gen)
+                        + (_c).min_uvt;
+    }
+}
+
+void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
+    std::cout << "\n--- storing data ---\n" << std::endl;
+    std::ofstream my_file;
+    my_file.open(_file_path + "/tot_bopt.dat");
+    my_file << "temp, rp, vp, uvi, uvt, obj, tn" << std::endl;
+
+    for (int id = 0; id < num_sims; ++id) {
+        my_file << bopti[id].temp << ", "
+                << bopti[id].rp   << ", "
+                << bopti[id].vp   << ", "
+                << bopti[id].uvi  << ", "
+                << bopti[id].uvt  << ", "
+                << bopti[id].obj  << ", "
+                << _s.time_stepping << std::endl;
+    }
+    my_file.close();
+}
+
+

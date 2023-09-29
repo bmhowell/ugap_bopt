@@ -129,6 +129,30 @@ opt_ugap/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/opt_ugap.dir/build.make CMakeFiles/opt_ugap.dir/build
 .PHONY : opt_ugap/fast
 
+BayesianOpt.o: BayesianOpt.cpp.o
+.PHONY : BayesianOpt.o
+
+# target to build an object file
+BayesianOpt.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/opt_ugap.dir/build.make CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.o
+.PHONY : BayesianOpt.cpp.o
+
+BayesianOpt.i: BayesianOpt.cpp.i
+.PHONY : BayesianOpt.i
+
+# target to preprocess a source file
+BayesianOpt.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/opt_ugap.dir/build.make CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.i
+.PHONY : BayesianOpt.cpp.i
+
+BayesianOpt.s: BayesianOpt.cpp.s
+.PHONY : BayesianOpt.s
+
+# target to generate assembly for a file
+BayesianOpt.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/opt_ugap.dir/build.make CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.s
+.PHONY : BayesianOpt.cpp.s
+
 GaussianProcess.o: GaussianProcess.cpp.o
 .PHONY : GaussianProcess.o
 
@@ -234,6 +258,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... opt_ugap"
+	@echo "... BayesianOpt.o"
+	@echo "... BayesianOpt.i"
+	@echo "... BayesianOpt.s"
 	@echo "... GaussianProcess.o"
 	@echo "... GaussianProcess.i"
 	@echo "... GaussianProcess.s"

@@ -13,8 +13,8 @@ double gen_data(float tfinal,
                 double dt,
                 int node,
                 int idsim,
-                bopt& bopti,
-                sim& simi,
+                bopt &bopti,
+                sim &simi,
                 std::string file_path,
                 bool multi_thread) {
     // print info (if not multi-threading)
@@ -70,7 +70,7 @@ double gen_data(float tfinal,
 // initialize input variables
 void bootstrap(sim &sim_settings,
                constraints &c,
-               std::vector<bopt> *bopti,
+               std::vector<bopt> &bopti,
                int num_sims,
                std::string file_path,
                bool multi_thread) {
@@ -121,7 +121,7 @@ void bootstrap(sim &sim_settings,
             #pragma omp critical
             {
                 int thread_id = omp_get_thread_num();
-                bopti->push_back(b);
+                bopti.push_back(b);
                 std::cout << "Thread " << thread_id
                           << ": i = " << id << std::endl;
             }
@@ -159,12 +159,12 @@ void bootstrap(sim &sim_settings,
             // write individual data to file (prevent accidental loss of data)
             write_to_file(b, sim_settings, id, file_path);
 
-            bopti->push_back(b);
+            bopti.push_back(b);
         }
     }
 }
 
-void write_to_file(bopt& b, sim& sim_set, int id, std::string file_path) {
+void write_to_file(bopt &b, sim &sim_set, int id, std::string file_path) {
     std::ofstream myfile;
     myfile.open(file_path + "/sim_" + std::to_string(id) + ".dat");
     myfile << "temp,rp,vp,uvi,uvt,obj,tn" << std::endl;
@@ -179,8 +179,8 @@ void write_to_file(bopt& b, sim& sim_set, int id, std::string file_path) {
     myfile.close();
 }
 
-void store_tot_data(std::vector<bopt> *bopti,
-                    sim& sim_set,
+void store_tot_data(std::vector<bopt> &bopti,
+                    sim &sim_set,
                     int num_sims,
                     std::string file_path) {
     std::cout << "--- storing data ---\n" << std::endl;
@@ -188,18 +188,18 @@ void store_tot_data(std::vector<bopt> *bopti,
     myfile.open(file_path + "/tot_bopt.dat");
     myfile << "temp,rp,vp,uvi,uvt,obj,tn" << std::endl;
     for (int id = 0; id < num_sims; ++id) {
-        myfile << (*bopti)[id].temp << ","
-               << (*bopti)[id].rp   << ","
-               << (*bopti)[id].vp   << ","
-               << (*bopti)[id].uvi  << ","
-               << (*bopti)[id].uvt  << ","
-               << (*bopti)[id].obj  << ","
+        myfile << bopti[id].temp << ","
+               << bopti[id].rp   << ","
+               << bopti[id].vp   << ","
+               << bopti[id].uvi  << ","
+               << bopti[id].uvt  << ","
+               << bopti[id].obj  << ","
                << sim_set.time_stepping << std::endl;
     }
     myfile.close();
 }
 
-int  read_data(std::vector<bopt> *bopti,
+int  read_data(std::vector<bopt> &bopti,
                std::string file_path) {
     std::ifstream file(file_path + "/tot_bopt.dat");
 
@@ -232,7 +232,7 @@ int  read_data(std::vector<bopt> *bopti,
         std::getline(iss, token, ',');
         b.obj = std::stof(token);
 
-        bopti->push_back(b);
+        bopti.push_back(b);
 
         id++;
     }

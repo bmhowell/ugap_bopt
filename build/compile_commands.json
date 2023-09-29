@@ -1,22 +1,27 @@
 [
 {
   "directory": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/build",
-  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/main.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/main.cpp",
+  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/main.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/main.cpp",
   "file": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/main.cpp"
 },
 {
   "directory": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/build",
-  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/helper_functions.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/helper_functions.cpp",
+  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/helper_functions.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/helper_functions.cpp",
   "file": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/helper_functions.cpp"
 },
 {
   "directory": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/build",
-  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/GaussianProcess.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/GaussianProcess.cpp",
+  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/GaussianProcess.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/GaussianProcess.cpp",
   "file": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/GaussianProcess.cpp"
 },
 {
   "directory": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/build",
-  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/Voxel.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/Voxel.cpp",
+  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/BayesianOpt.cpp",
+  "file": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/BayesianOpt.cpp"
+},
+{
+  "directory": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/build",
+  "command": "/usr/bin/clang++  -isystem /usr/local/include/eigen3 -isystem /usr/local/include -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14 -o CMakeFiles/opt_ugap.dir/Voxel.cpp.o -c /Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/Voxel.cpp",
   "file": "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/src/Voxel.cpp"
 }
 ]

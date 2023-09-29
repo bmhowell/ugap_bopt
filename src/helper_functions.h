@@ -24,22 +24,22 @@ double  gen_data(float tfinal,
 
 void    bootstrap(sim &sim_settings,
                   constraints &c,
-                  std::vector<bopt>* bopt,
+                  std::vector<bopt> &bopt,
                   int num_sims,
                   std::string file_path,
                   bool multi_thread);
 
 void    write_to_file(bopt &b,
-                      sim& sim_set,
+                      sim &sim_set,
                       int id,
                       std::string file_path);
 
-void    store_tot_data(std::vector<bopt>* bopti,
+void    store_tot_data(std::vector<bopt> &bopti,
                        sim &sim_set,
                        int num_sims,
                        std::string file_path);
 
-int     read_data(std::vector<bopt>* bopti,
+int     read_data(std::vector<bopt> &bopti,
                   std::string file_path); 
 
 #endif  // SRC_HELPER_FUNCTIONS_H_

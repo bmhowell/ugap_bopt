@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -isystem /usr/local/include/eigen3 -isystem /usr/local/include
 
-CXX_FLAGS = -O3 -DNDEBUG -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.3.sdk -Xclang -fopenmp -std=gnu++14
+CXX_FLAGS = -O3 -DNDEBUG -Xclang -fopenmp -std=gnu++14
 

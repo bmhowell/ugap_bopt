@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.o"
+  "CMakeFiles/opt_ugap.dir/BayesianOpt.cpp.o.d"
   "CMakeFiles/opt_ugap.dir/GaussianProcess.cpp.o"
   "CMakeFiles/opt_ugap.dir/GaussianProcess.cpp.o.d"
   "CMakeFiles/opt_ugap.dir/Voxel.cpp.o"

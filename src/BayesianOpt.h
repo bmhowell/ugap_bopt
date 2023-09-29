@@ -12,7 +12,34 @@
 #include "Voxel.h"
 
 class BayesianOpt {
- private:
+ public:
+   // CONSTRUCTORS
+    BayesianOpt();
+    BayesianOpt(GaussianProcess &model,
+                const int       &n_dim,
+                constraints     &c,
+                sim             &s,
+                std::string     &file_path);
+    ~BayesianOpt();
+ 
+    // PUBLIC MEMBER FUNCTIONS
+    void load_data(std::vector<bopt> &bopti, const bool validate);
+
+    void condition_model(const bool pre_learned);
+    void condition_model();
+
+    void evaluate_model();
+
+    void sample_posterior();
+
+    void qUCB(const bool _lcb);
+    void qUCB();
+
+    void evaluate_samples();
+
+    void optimize();
+
+private:
     // MEMBER VARIABLES
 
     // opt constraints, sim settings, and GP model
@@ -48,6 +75,10 @@ class BayesianOpt {
     Eigen::VectorXd *_y_sample_std;
     Eigen::VectorXd *_conf_bound;
 
+    // top performers
+    Eigen::MatrixXd *_x_top;
+    Eigen::VectorXd *_y_top;
+
     // PRIVATE MEMBER FUNCTIONS
     void build_dataset(std::vector<bopt> &bopti,
                        Eigen::MatrixXd   &x_train,
@@ -63,32 +94,6 @@ class BayesianOpt {
 
     void store_tot_data(std::vector<bopt> &bopti, int num_sims);
 
- public:
-    // CONSTRUCTORS
-    BayesianOpt();
-    BayesianOpt(GaussianProcess &model,
-                int             &n_dim,
-                constraints     &c,
-                sim             &s,
-                std::string     &file_path);
-    ~BayesianOpt();
-
-
-    // PUBLIC MEMBER FUNCTIONS
-    void load_data(std::vector<bopt> &bopti, bool validate);
-
-    void condition_model(bool pre_learned);
-    void condition_model();
-
-    void evaluate_model();
-
-    void sample_posterior();
-
-    void qUCB(bool _lcb);
-    void qUCB();
-
-    void evaluate_samples();
-
-    void optimize();
+    
 };
 #endif  // SRC_BAYESIANOPT_H_

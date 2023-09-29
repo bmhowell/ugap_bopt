@@ -37,24 +37,26 @@ int main(int argc, char** argv) {
     bool multi_thread = true;
     if (s.bootstrap) {
         ndata0 = 1000;
-        bootstrap(s, c, bopti, ndata0, file_path, multi_thread);
+        bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
 
         // store data
-        store_tot_data(bopti, s, ndata0, file_path);
+        store_tot_data(*bopti, s, ndata0, file_path);
     } else {
-        ndata0 = read_data(bopti, file_path);
+        ndata0 = read_data(*bopti, file_path);
     }
     std::cout << "Number of data points: " << ndata0 << std::endl;
+    
     // STEP 2: initialize function approximator and optimizer
-    int n_dim = 5; 
+    const int n_dim = 5; 
+    const bool val  = true; 
     GaussianProcess model = GaussianProcess("RBF", file_path);
     BayesianOpt optimizer(model, n_dim, c, s, file_path);
-    optimizer.load_data(*bopti, true);  // (bopti, _validate)
+    optimizer.load_data(*bopti, val);  // (bopti, _validate)
 
     // STEP 3: train the model
+    const bool pre_learned = true;
     optimizer.condition_model(true);   // (pre-learned)
     optimizer.evaluate_model();
-    // optimizer.qUCB(false);             // false -> lcb || true -> ucb
 
     // STEP 4: optimize and evaluate new candidate simulations
     optimizer.optimize();
