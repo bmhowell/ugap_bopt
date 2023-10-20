@@ -434,12 +434,12 @@ double Voxel::PIdotRate(std::vector<double> &conc_PIdot,
        // compute chemical diffusion as a function of variable diffusivity
         double denom = 1 / _h / _h; 
 
-        diffuse = (  diffusivity[0] * (conc_PI[node+1]               - conc_PI[node])
-                   - diffusivity[1] * (conc_PI[node]                 - conc_PI[node - 1])
+        diffuse = (  diffusivity[0] * (conc_PI[node+1]                - conc_PI[node])
+                   - diffusivity[1] * (conc_PI[node]                  - conc_PI[node - 1])
                    + diffusivity[2] * (conc_PI[node + _nodes]         - conc_PI[node])
-                   - diffusivity[3] * (conc_PI[node]                 - conc_PI[node - _nodes])
+                   - diffusivity[3] * (conc_PI[node]                  - conc_PI[node - _nodes])
                    + diffusivity[4] * (conc_PI[node + _n_plane_nodes] - conc_PI[node])
-                   - diffusivity[5] * (conc_PI[node]                 - conc_PI[node - _n_plane_nodes])
+                   - diffusivity[5] * (conc_PI[node]                  - conc_PI[node - _n_plane_nodes])
                    ) * denom;
 
 

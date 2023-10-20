@@ -32,8 +32,8 @@ class BayesianOpt {
 
     void sample_posterior();
 
-    void qUCB(const bool _lcb);
-    void qUCB();
+    void qUCB(const bool _lcb, int iter);
+    void qUCB(int iter);
 
     void evaluate_samples();
 
@@ -52,8 +52,9 @@ private:
     std::vector<double> _model_params;
     bool                _validate;
     int                 _n_dim;
-    int                 _num_sample = 100;
+    int                 _num_sample;
     int                 _num_evals;
+    int                 _init_data_size;
 
 
     // data matrices
@@ -75,10 +76,6 @@ private:
     Eigen::VectorXd *_y_sample_std;
     Eigen::VectorXd *_conf_bound;
 
-    // top performers
-    Eigen::MatrixXd *_x_top;
-    Eigen::VectorXd *_y_top;
-
     // PRIVATE MEMBER FUNCTIONS
     void build_dataset(std::vector<bopt> &bopti,
                        Eigen::MatrixXd   &x_train,
@@ -94,6 +91,8 @@ private:
 
     void store_tot_data(std::vector<bopt> &bopti, int num_sims);
 
-    
+    double inv_decay_schdl(int iter);
+
+    double exp_decay_schdl(int iter);
 };
 #endif  // SRC_BAYESIANOPT_H_

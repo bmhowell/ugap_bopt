@@ -23,6 +23,7 @@ int main(int argc, char** argv) {
     std::string file_path;
     file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
                 + std::to_string(s.time_stepping);
+
     // LINUX CENTRAL COMPUTING
     // file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
     //           + std::to_string(s.time_stepping);
@@ -47,18 +48,23 @@ int main(int argc, char** argv) {
     std::cout << "Number of data points: " << ndata0 << std::endl;
     
     // STEP 2: initialize function approximator and optimizer
-    const int n_dim = 5; 
-    const bool val  = true; 
+    const int n_dim = 5;            // number of optimization variables
+    const bool val  = false;         // validation toggle
+
+    // initialize function approximator
     GaussianProcess model = GaussianProcess("RBF", file_path);
+
+    // load model, n opt vars, constraints, settings, and file path into optimizer
     BayesianOpt optimizer(model, n_dim, c, s, file_path);
     optimizer.load_data(*bopti, val);  // (bopti, _validate)
 
     // STEP 3: train the model
     const bool pre_learned = true;
     optimizer.condition_model(true);   // (pre-learned)
-    optimizer.evaluate_model();
+    if (val) {optimizer.evaluate_model();};
 
     // STEP 4: optimize and evaluate new candidate simulations
+    std::cout << "\n--- OPTIMIZING ---" << std::endl;
     optimizer.optimize();
 
     // Get the current time after the code segment finishes

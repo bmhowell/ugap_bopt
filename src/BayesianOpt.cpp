@@ -43,6 +43,12 @@ BayesianOpt::BayesianOpt() {
     _y_sample_mean = new Eigen::VectorXd;
     _y_sample_std  = new Eigen::VectorXd;
     _conf_bound    = new Eigen::VectorXd;
+    
+    // number of sample points for acq fn
+    _num_sample = 250;
+
+    // number of prev evals
+    _init_data_size = 0;
 }
 
 /* overload constructor */
@@ -71,10 +77,16 @@ BayesianOpt::BayesianOpt(GaussianProcess &model,
     _y_test_std    = new Eigen::VectorXd;
 
     // sampling
-    _x_smpl      = new Eigen::MatrixXd;
+    _x_smpl        = new Eigen::MatrixXd;
     _y_sample_mean = new Eigen::VectorXd;
     _y_sample_std  = new Eigen::VectorXd;
     _conf_bound    = new Eigen::VectorXd;
+
+    // number of sample points for acq fn
+    _num_sample = 250;
+
+    // number of prev evals
+    _init_data_size = 0;
 }
 
 /* destructor */
@@ -89,7 +101,6 @@ BayesianOpt::~BayesianOpt() {
 
     delete _x_val;
     delete _y_val;
-
     delete _x_test;
     delete _y_test;
     delete _y_test_std;
@@ -99,23 +110,21 @@ BayesianOpt::~BayesianOpt() {
     delete _y_sample_mean;
     delete _y_sample_std;
     delete _conf_bound;
-
-    // delete top performers
-    delete _x_top; 
-    delete _y_top; 
 }
 
 // PUBLIC MEMBER FUNCTIONS
 void BayesianOpt::load_data(std::vector<bopt> &bopti, const bool validate) {
-    _bopti    = bopti;
-    _validate = validate;
+    _bopti          = bopti;
+    _validate       = validate;
+    _init_data_size = bopti.size();
+    std::cout << "INIT DATA SIZE: " << _init_data_size << std::endl;
 
     if (validate) {
         // build dataset for training and testing
-        build_dataset(bopti, *_x_train, *_y_train, *_x_val, *_y_val);
+        this->build_dataset(bopti, *_x_train, *_y_train, *_x_val, *_y_val);
     } else {
         // build dataset for training only
-        build_dataset(bopti, *_x_train, *_y_train);
+        this->build_dataset(bopti, *_x_train, *_y_train);
     }
 }
 
@@ -159,7 +168,7 @@ void BayesianOpt::evaluate_model() {
         std::cout << "--- _model validatation ---" << std::endl;
         _model.validate(*_x_val, *_y_val);
     } else {
-        throw std::invalid_argument("Error: scale data before validating");
+        throw std::invalid_argument("Error: validation data not selected");
     }
 }
 
@@ -171,7 +180,7 @@ void BayesianOpt::sample_posterior() {
     _conf_bound    ->resize(_num_sample);
 
     // generate uniformly random points
-    gen_test_points(*_x_smpl);
+    this->gen_test_points(*_x_smpl);
 
     // predict mean and std
     _model.predict(*_x_smpl, true);
@@ -181,20 +190,23 @@ void BayesianOpt::sample_posterior() {
     _y_sample_std->array()  = _model.get_y_test_std().array();
 }
 
-void BayesianOpt::qUCB(const bool _lcb) {
-    """
+void BayesianOpt::qUCB(const bool _lcb, int iter) {
+    /*
         RECORD TOP PERFORMERS
-    """
+    */
     if (_lcb) {
+        // double beta = exp_decay_schdl(iter);
+        // exploratory parameter
+        std::cout << "iter: " << iter << " | beta: " << std::sqrt(1.96*std::exp(-iter)) << std::endl;
         _conf_bound->array() = _y_sample_mean->array()
-                             - 1.96 * _y_sample_std->array();
+                             - std::sqrt(1.96*std::exp(-iter)) * _y_sample_std->array();
 
         // sort/rank candidates
         Eigen::VectorXi inds_s;
         inds_s = Eigen::VectorXi::LinSpaced(
                     _conf_bound->size(), 0, _conf_bound->size() - 1
                     );
-        std::cout << "_conf_bound: " << _conf_bound->transpose() << std::endl; 
+
         std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
                  [this](int a, int b) {
                             return (*_conf_bound)(a) < (*_conf_bound)(b);
@@ -203,16 +215,16 @@ void BayesianOpt::qUCB(const bool _lcb) {
 
         *_conf_bound = (*_conf_bound)(inds_s);
         *_x_smpl   = (*_x_smpl)(inds_s, Eigen::all);
-        std::cout << "_conf_bound: " << _conf_bound->transpose() << std::endl;
 
     } else {
-        qUCB();
+        qUCB(iter);
     }
 }
 
-void BayesianOpt::qUCB() {
+void BayesianOpt::qUCB(int iter) {
+    // double beta = exp_decay_schdl(iter);
     _conf_bound->array() = _y_sample_mean->array()
-                         - 1.96 * _y_sample_std->array();
+                         + std::sqrt(1.96*std::exp(-iter)) * _y_sample_std->array();
 
     // get top candidates
     Eigen::VectorXi inds_s;
@@ -225,8 +237,9 @@ void BayesianOpt::qUCB() {
                 return (*_conf_bound)(a) > (*_conf_bound)(b);
                 });
 
+    // sort top samples
     *_conf_bound = (*_conf_bound)(inds_s);
-    *_x_smpl   = (*_x_smpl)(inds_s, Eigen::all);
+    *_x_smpl     = (*_x_smpl)(inds_s, Eigen::all);
 }
 
 void BayesianOpt::evaluate_samples() {
@@ -268,11 +281,11 @@ void BayesianOpt::evaluate_samples() {
                         << ": i = " << id 
                         << " | b.obj: " << b.obj << std::endl;
             // std::cout << "b.obj: " << b.obj << std::endl;
-            std::cout << "b.temp: " << b.temp << std::endl;
-            std::cout << "b.rp: " << b.rp << std::endl;
-            std::cout << "b.vp: " << b.vp << std::endl;
-            std::cout << "b.uvi: " << b.uvi << std::endl;
-            std::cout << "b.uvt: " << b.uvt << std::endl;
+            // std::cout << "b.temp: " << b.temp << std::endl;
+            // std::cout << "b.rp: " << b.rp << std::endl;
+            // std::cout << "b.vp: " << b.vp << std::endl;
+            // std::cout << "b.uvi: " << b.uvi << std::endl;
+            // std::cout << "b.uvt: " << b.uvt << std::endl;
             std::cout << "-------------------\n" << std::endl; 
         }
     }
@@ -285,11 +298,11 @@ void BayesianOpt::evaluate_samples() {
 }
 
 void BayesianOpt::optimize() {
-    // uniformly sample domain
+    // step 1: uniformly sample domain from gaussian process
     this->sample_posterior();
     
-    // compute confidence bound
-    this->qUCB(false);
+    // compute confidence bound (true indicates we are minimizing)
+    this->qUCB(true, 0);
     
     // evaluate top candidates
     this->evaluate_samples();
@@ -300,13 +313,13 @@ void BayesianOpt::optimize() {
         this->build_dataset(_bopti, *_x_train, *_y_train);
 
         // train model on new data
-        this->condition_model();
+        this->condition_model(true);
 
         // uniformly sample domain
         this->sample_posterior();
 
         // compute confidence bound
-        this->qUCB(true);
+        this->qUCB(true, _x_train->rows());
 
         // evaluate top candidates
         this->evaluate_samples();
@@ -426,6 +439,20 @@ void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
                 << _s.time_stepping << std::endl;
     }
     my_file.close();
+}
+
+double inv_decay_schdl(int iter) {
+    // subtract of initial n data points
+    // iter -= _init_data_size;
+
+    return std::sqrt(1.96 / (1.0 + iter));
+}
+
+double exp_decay_schdl(int iter) {
+    // subtract of initial n data points
+    // iter -= _init_data_size;
+
+    return std::sqrt(1.96*std::exp(-iter));
 }
 
 

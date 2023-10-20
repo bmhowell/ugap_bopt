@@ -67,7 +67,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
                             std::vector<double>& model_param){
 
-    auto start = std::chrono::high_resolution_clock::now();
+    // auto start = std::chrono::high_resolution_clock::now();
 
     // function overloading to take into account previously learned parameters 
     _trained = true; 
@@ -81,14 +81,14 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     // compute _lml, _alpha and _L
     _lml = compute_lml(_l, _sf, _sn);
 
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
-    std::cout << "--- Training time: " << duration / 60 << " min ---" << std::endl;
-    std::cout << "\nlml: " << _lml << std::endl;
-    std::cout << "   _l = " << _l << std::endl;
-    std::cout << "   _sf = " << _sf << std::endl;
-    std::cout << "   _sn = " << _sn << std::endl;
-    std::cout << "--- ----------------- ---: " << std::endl;
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
+    // std::cout << "--- Training time: " << duration / 60 << " min ---" << std::endl;
+    // std::cout << "\nlml: " << _lml << std::endl;
+    // std::cout << "   _l = " << _l << std::endl;
+    // std::cout << "   _sf = " << _sf << std::endl;
+    // std::cout << "   _sn = " << _sn << std::endl;
+    // std::cout << "--- ----------------- ---: " << std::endl;
 }
 
 double GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
@@ -368,7 +368,7 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
         for (int i = 0; i < pop; ++i){
 
             // compute negative log-likelihood
-            param(i, 3) = compute_lml(param(i, 0), param(i, 1), param(i, 2));
+            param(i, 3) = this->compute_lml(param(i, 0), param(i, 1), param(i, 2));
         }
 
         this->sort_data(param);
