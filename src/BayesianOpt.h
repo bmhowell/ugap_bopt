@@ -55,6 +55,7 @@ private:
     int                 _num_sample;
     int                 _num_evals;
     int                 _init_data_size;
+    int                 _current_iter;
 
 
     // data matrices
@@ -76,6 +77,11 @@ private:
     Eigen::VectorXd *_y_sample_std;
     Eigen::VectorXd *_conf_bound;
 
+    // performance
+    std::vector<double> _avg_obj;
+    std::vector<double> _top_obj;
+    std::vector<double> _avg_top_obj;
+
     // PRIVATE MEMBER FUNCTIONS
     void build_dataset(std::vector<bopt> &bopti,
                        Eigen::MatrixXd   &x_train,
@@ -90,6 +96,8 @@ private:
     void gen_test_points(Eigen::MatrixXd &x_smpl);
 
     void store_tot_data(std::vector<bopt> &bopti, int num_sims);
+
+    void save_cost();
 
     double inv_decay_schdl(int iter);
 

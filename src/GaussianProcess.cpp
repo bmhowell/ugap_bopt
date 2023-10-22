@@ -281,7 +281,7 @@ double GaussianProcess::compute_lml(double& length, double& sigma, double& noise
     
     // compute covariance matrix
     kernelGP(_x_train, _x_train, length, sigma);
-    _Ky          = _Cov; 
+    _Ky = _Cov; 
 
     // add noise to covariance matrix
     for (int i = 0; i < _x_train.rows(); i++){
