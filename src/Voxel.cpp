@@ -176,7 +176,7 @@ Voxel::Voxel(float tf,
 
 // Destructor
 Voxel::~Voxel() {
-    std::cout << "Voxel destructor called" << std::endl;
+    // std::cout << "Voxel destructor called" << std::endl;
 }
 
 // helper functions

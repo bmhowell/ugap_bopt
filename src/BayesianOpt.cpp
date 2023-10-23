@@ -192,43 +192,12 @@ void BayesianOpt::sample_posterior() {
     _y_sample_std->array()  = _model.get_y_test_std().array();
 }
 
-void BayesianOpt::qUCB(const bool _lcb, int iter) {
-    /*
-        RECORD TOP PERFORMERS
-    */
-    if (_lcb) {
-        // double beta = exp_decay_schdl(iter);
-        // exploratory parameter
-        double beta = std::sqrt(1.96 / (1.0 + iter));
-        std::cout << "iter: " << iter << " | beta: " << beta << std::endl;
-        _conf_bound->array() = _y_sample_mean->array()
-                             - beta * _y_sample_std->array();
-
-        // sort/rank candidates
-        Eigen::VectorXi inds_s;
-        inds_s = Eigen::VectorXi::LinSpaced(
-                    _conf_bound->size(), 0, _conf_bound->size() - 1
-                    );
-
-        std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
-                 [this](int a, int b) {
-                            return (*_conf_bound)(a) < (*_conf_bound)(b);
-                        }
-                    );
-
-        *_conf_bound = (*_conf_bound)(inds_s);
-        *_x_smpl   = (*_x_smpl)(inds_s, Eigen::all);
-
-    } else {
-        qUCB(iter);
-    }
-}
-
-void BayesianOpt::qUCB(int iter) {
+void BayesianOpt::qLCB(int iter) {
     // double beta = exp_decay_schdl(iter);
-    double beta = std::sqrt(1.96 / (1.0 + iter));
+    double beta = inv_decay_schdl(iter);
+    std::cout << "beta: " << beta << std::endl;
     _conf_bound->array() = _y_sample_mean->array()
-                         + beta * _y_sample_std->array();
+                         - beta * _y_sample_std->array();
 
     // get top candidates
     Eigen::VectorXi inds_s;
@@ -238,7 +207,7 @@ void BayesianOpt::qUCB(int iter) {
 
     std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
              [this](int a, int b) {
-                return (*_conf_bound)(a) > (*_conf_bound)(b);
+                return (*_conf_bound)(a) < (*_conf_bound)(b);
                 });
 
     // sort top samples
@@ -249,9 +218,8 @@ void BayesianOpt::qUCB(int iter) {
 void BayesianOpt::evaluate_samples() {
     // evaluate top candidates
     _num_evals = omp_get_num_procs();
-    std::cout << "NUM EVALUATIONS: " << _num_evals << std::endl;
     std::vector<bopt> voxels_evals;
-    std::vector<double> cost;
+
     #pragma omp parallel for
     for (int id = 0; id < _num_evals; ++id) {
         // pull data from _x_smpl
@@ -282,16 +250,14 @@ void BayesianOpt::evaluate_samples() {
         {
             int thread_id = omp_get_thread_num();
             voxels_evals.push_back(b);
-            cost.push_back(b.obj);
-            std::cout << "Thread " << thread_id 
-                        << ": i = " << id 
-                        << " | b.obj: " << b.obj << std::endl;
-            // std::cout << "b.obj: " << b.obj << std::endl;
-            // std::cout << "b.temp: " << b.temp << std::endl;
-            // std::cout << "b.rp: " << b.rp << std::endl;
-            // std::cout << "b.vp: " << b.vp << std::endl;
-            // std::cout << "b.uvi: " << b.uvi << std::endl;
-            // std::cout << "b.uvt: " << b.uvt << std::endl;
+            _cost.push_back(b.obj);
+            std::cout << "Thread " << thread_id << std::endl;
+            std::cout << " | b.obj: " << b.obj 
+                      << " | b.temp: "<< b.temp
+                      << " | b.rp: "  << b.rp
+                      << " | b.vp: "  << b.vp
+                      << " | b.uvi: " << b.uvi
+                      << " | b.uvt: " << b.uvt << std::endl;
             std::cout << "-------------------\n" << std::endl; 
         }
     }
@@ -299,19 +265,18 @@ void BayesianOpt::evaluate_samples() {
     std::cout << "--- finished new evaluations ---" << std::endl;
 
     // sort cost
-    std::sort(cost.begin(), cost.end());
+    std::sort(_cost.begin(), _cost.end());
 
     // store top performers
-    // _top_obj.push_back(*std::min_element(cost.begin(), cost.end()));
-    _top_obj.push_back(cost[0]);
+    _top_obj.push_back(_cost[0]);
 
     // average top five performers and total performers
 
-    _avg_top_obj.push_back(std::accumulate(cost.begin(), cost.begin() + 5, 0.0) / 5);
-    _avg_obj.push_back(std::accumulate(cost.begin(), cost.end(), 0.0) / cost.size());
+    _avg_top_obj.push_back(std::accumulate(_cost.begin(), _cost.begin() + 5, 0.0) / 5);
+    _avg_obj.push_back(std::accumulate(_cost.begin(), _cost.end(), 0.0) / _cost.size());
 
-    // delete performers
-    cost.clear();
+    // // delete performers
+    // cost.clear();
 
     // concatenate data
     _bopti.insert(_bopti.end(), voxels_evals.begin(), voxels_evals.end());
@@ -319,17 +284,19 @@ void BayesianOpt::evaluate_samples() {
 }
 
 void BayesianOpt::optimize() {
+    std::cout << "\n===== OPTIMIZING =====" << std::endl;
     // step 1: uniformly sample domain from gaussian process
     this->sample_posterior();
     
     // compute confidence bound (true indicates we are minimizing)
-    this->qUCB(true, 0);
+    this->qLCB(0);
     
     // evaluate top candidates
     this->evaluate_samples();
 
     // run loop
     for (int iter = 1; iter < 10; ++iter) {
+        std::cout << "\n===== ITERATION " << iter << " =====" << std::endl;
         // update data
         this->build_dataset(_bopti, *_x_train, *_y_train);
 
@@ -340,14 +307,37 @@ void BayesianOpt::optimize() {
         this->sample_posterior();
 
         // compute confidence bound
-        this->qUCB(true, _x_train->rows());
+        // this->qLCB(_x_train->rows());
+        this->qLCB(iter);
 
         // evaluate top candidates
         this->evaluate_samples();
+
+        // print current best costs
+        std::cout << "\ncurrent best costs: " << std::endl;
+        for (int j = 0; j < 5; ++j) {
+            std::cout << _cost[j] << ", ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "===== =========== =====" << std::endl;
     }
 
-    // save cost
+    // save cost and sort data
     this->save_cost();
+    this->sort_data();
+
+    std::cout << "Final best values: " << std::endl;
+    for (int i = 0; i < 5; ++i) {
+        std::cout << " | b.obj: " << _cost[i] << "\n"
+                  << " | b.temp: "<< _x_train->coeff(i, 0) << "\n"
+                  << " | b.rp: "  << _x_train->coeff(i, 1) << "\n"
+                  << " | b.vp: "  << _x_train->coeff(i, 2) << "\n"
+                  << " | b.uvi: " << _x_train->coeff(i, 3) << "\n"
+                  << " | b.uvt: " << _x_train->coeff(i, 4) << "\n"
+                  << std::endl;
+    }
+
 }
 
 // PRIVATE MEMBER FUNCTIONS
@@ -418,9 +408,6 @@ void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
     std::mt19937 g(rd());
     std::shuffle(bopti.begin(), bopti.end(), g);
 
-    // record top performers
-    std::vector<double> cost;
-
     // populate training sets
     for (int i = 0; i < num_train; ++i) {
         x_train(i, 0) = bopti[i].temp;
@@ -430,18 +417,18 @@ void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
         x_train(i, 4) = bopti[i].uvt;
         y_train(i)    = bopti[i].obj;
         if (_current_iter == 0) {
-            cost.push_back(bopti[i].obj);
+            _cost.push_back(bopti[i].obj);
         }
     }
 
     if (_current_iter == 0) {
         // sort cost
-        std::sort(cost.begin(), cost.end());
+        std::sort(_cost.begin(), _cost.end());
 
         // computer top, avg top, and avg cost
-        _top_obj.push_back(cost[0]);
-        _avg_top_obj.push_back(std::accumulate(cost.begin(), cost.begin() + 5, 0.0) / 5);
-        _avg_obj.push_back(std::accumulate(cost.begin(), cost.end(), 0.0) / cost.size());
+        _top_obj.push_back(_cost[0]);
+        _avg_top_obj.push_back(std::accumulate(_cost.begin(), _cost.begin() + 5, 0.0) / 5);
+        _avg_obj.push_back(std::accumulate(_cost.begin(), _cost.end(), 0.0) / _cost.size());
     }
 
     // populate validation sets
@@ -515,14 +502,32 @@ void BayesianOpt::save_cost() {
     my_file.close();
 }
 
-double inv_decay_schdl(int iter) {
+void BayesianOpt::sort_data() {
+    // sort data
+    Eigen::VectorXi inds_s;
+    inds_s = Eigen::VectorXi::LinSpaced(_y_train->size(),
+                                        0,
+                                        _y_train->size() - 1);
+
+    std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
+             [this](int a, int b) {
+                return (*_y_train)(a) < (*_y_train)(b);
+                });
+
+    // sort data
+    *_y_train = (*_y_train)(inds_s);
+    *_x_train = (*_x_train)(inds_s, Eigen::all);
+}
+
+
+double BayesianOpt::inv_decay_schdl(int iter) {
     // subtract of initial n data points
     // iter -= _init_data_size;
 
     return std::sqrt(1.96 / (1.0 + iter));
 }
 
-double exp_decay_schdl(int iter) {
+double BayesianOpt::exp_decay_schdl(int iter) {
     // subtract of initial n data points
     // iter -= _init_data_size;
 

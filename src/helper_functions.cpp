@@ -113,17 +113,21 @@ void bootstrap(sim &sim_settings,
                              sim_settings,
                              file_path,
                              true);
-            std::cout << "b.obj: " << b.obj << std::endl;
-            std::cout << "---  ------- ---\n" << std::endl;
 
-            // write individual data to file (prevent accidental loss of data)
-            write_to_file(b, sim_settings, id, file_path);
+            // // write individual data to file (prevent accidental loss of data)
+            // write_to_file(b, sim_settings, id, file_path);
             #pragma omp critical
             {
                 int thread_id = omp_get_thread_num();
                 bopti.push_back(b);
-                std::cout << "Thread " << thread_id
-                          << ": i = " << id << std::endl;
+                std::cout << "Thread " << thread_id << std::endl;
+                std::cout << " | b.obj: " << b.obj 
+                          << " | b.temp: "<< b.temp
+                          << " | b.rp: "  << b.rp
+                          << " | b.vp: "  << b.vp
+                          << " | b.uvi: " << b.uvi
+                          << " | b.uvt: " << b.uvt << std::endl;
+                std::cout << "-------------------\n" << std::endl; 
             }
         }
     } else {
@@ -156,8 +160,8 @@ void bootstrap(sim &sim_settings,
             std::cout << "b.obj: " << b.obj << std::endl;
             std::cout << "---  ------- ---\n" << std::endl;
 
-            // write individual data to file (prevent accidental loss of data)
-            write_to_file(b, sim_settings, id, file_path);
+            // // write individual data to file (prevent accidental loss of data)
+            // write_to_file(b, sim_settings, id, file_path);
 
             bopti.push_back(b);
         }

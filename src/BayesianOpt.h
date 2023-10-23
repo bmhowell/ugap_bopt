@@ -32,8 +32,7 @@ class BayesianOpt {
 
     void sample_posterior();
 
-    void qUCB(const bool _lcb, int iter);
-    void qUCB(int iter);
+    void qLCB(int iter);
 
     void evaluate_samples();
 
@@ -81,6 +80,7 @@ private:
     std::vector<double> _avg_obj;
     std::vector<double> _top_obj;
     std::vector<double> _avg_top_obj;
+    std::vector<double> _cost;
 
     // PRIVATE MEMBER FUNCTIONS
     void build_dataset(std::vector<bopt> &bopti,
@@ -98,6 +98,8 @@ private:
     void store_tot_data(std::vector<bopt> &bopti, int num_sims);
 
     void save_cost();
+
+    void sort_data();
 
     double inv_decay_schdl(int iter);
 

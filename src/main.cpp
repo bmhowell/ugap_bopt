@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     // opt constraints (default) and sim settings (default)
     constraints c;
     sim         s;
-    s.bootstrap = false;
+    s.bootstrap = true;
     s.time_stepping = 0;
     s.update_time_stepping_values();
 
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     int ndata0;
     bool multi_thread = true;
     if (s.bootstrap) {
-        ndata0 = 1000;
+        ndata0 = omp_get_num_procs();
         bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
 
         // store data
@@ -64,7 +64,6 @@ int main(int argc, char** argv) {
     if (val) {optimizer.evaluate_model();};
 
     // STEP 4: optimize and evaluate new candidate simulations
-    std::cout << "\n--- OPTIMIZING ---" << std::endl;
     optimizer.optimize();
 
     // Get the current time after the code segment finishes
