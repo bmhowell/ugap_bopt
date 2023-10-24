@@ -16,17 +16,17 @@ int main(int argc, char** argv) {
     constraints c;
     sim         s;
     s.bootstrap = true;
-    s.time_stepping = 0;
+    s.time_stepping = 2;
     s.update_time_stepping_values();
 
     // MACBOOK PRO
     std::string file_path;
-    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
-                + std::to_string(s.time_stepping);
+    // file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
+    //             + std::to_string(s.time_stepping);
 
     // LINUX CENTRAL COMPUTING
-    // file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
-    //           + std::to_string(s.time_stepping);
+    file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
+              + std::to_string(s.time_stepping);
 
     std::cout << "\n--- INITIALIZING OPT. FRAMEWORK ---" << std::endl;
 
@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
     bool multi_thread = true;
     if (s.bootstrap) {
         ndata0 = omp_get_num_procs();
+        std::cout << "Number of threads: " << ndata0 << std::endl;
         bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
 
         // store data
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 
     // STEP 3: train the model
     const bool pre_learned = true;
-    optimizer.condition_model(true);   // (pre-learned)
+    optimizer.condition_model(false);   // (pre-learned)
     if (val) {optimizer.evaluate_model();};
 
     // STEP 4: optimize and evaluate new candidate simulations

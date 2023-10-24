@@ -275,9 +275,6 @@ void BayesianOpt::evaluate_samples() {
     _avg_top_obj.push_back(std::accumulate(_cost.begin(), _cost.begin() + 5, 0.0) / 5);
     _avg_obj.push_back(std::accumulate(_cost.begin(), _cost.end(), 0.0) / _cost.size());
 
-    // // delete performers
-    // cost.clear();
-
     // concatenate data
     _bopti.insert(_bopti.end(), voxels_evals.begin(), voxels_evals.end());
     this->store_tot_data(_bopti, _bopti.size());
@@ -301,7 +298,7 @@ void BayesianOpt::optimize() {
         this->build_dataset(_bopti, *_x_train, *_y_train);
 
         // train model on new data
-        this->condition_model(true);
+        this->condition_model(false);
 
         // uniformly sample domain
         this->sample_posterior();

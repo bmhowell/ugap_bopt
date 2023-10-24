@@ -105,7 +105,7 @@ private:
         for genetic algorithm. 
     */ 
 
-    void gen_opt(double& _l, double& _sf, double& _sn);
+    void gen_tune_param();
     /* 
         Genetic algorithm used for maximization of marginal log likelihood. 
     */ 

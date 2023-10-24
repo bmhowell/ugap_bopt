@@ -12,6 +12,12 @@ GaussianProcess::GaussianProcess() {
     _test_scaled    = false;            // flag to indicate if validation data has been scaled
     _val_scaled     = false;            // flag to indicate if validation data has been scaled
 
+    // initialize hyper params
+    _l   = 1.0;
+    _sf  = 0.76;
+    _sn  = 0.000888;
+    _lml = -1000.0;
+
     _file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output";
 }
 
@@ -20,7 +26,13 @@ GaussianProcess::GaussianProcess(std::string KERNEL,
                                  std::string FILE_PATH){
     _kernel    = KERNEL;
     _trained   = false;
-    _file_path = FILE_PATH; 
+    _file_path = FILE_PATH;
+
+    // initialize hyper params
+    _l  = 1.0;
+    _sf = 0.76;
+    _sn = 0.000888;
+    _lml = -1000.0;
 }
 
 /* destructor function */
@@ -30,21 +42,20 @@ GaussianProcess::~GaussianProcess() {
 
 // PUBLIC MEMBER FUNCTIONS
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
-    std::cout << "\n--- Training Gaussian Process ---\n" << std::endl;
-
+    std::cout << "\n===== TUNING GP PARAMETERS======" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
     _trained = true;
-    scale_data(X_TRAIN, Y_TRAIN);
+    this->scale_data(X_TRAIN, Y_TRAIN);
 
     // maximize marginal likelihood 
-    gen_opt(_l, _sf, _sn);
+    this->gen_tune_param();
 
     // compute _lml, _alpha and _L
-    _lml = compute_lml(_l, _sf, _sn);
+    _lml = this->compute_lml(_l, _sf, _sn);
 
     // compute covariance matrix
-    kernelGP(_x_train, _x_train, _l, _sf);
+    this->kernelGP(_x_train, _x_train, _l, _sf);
     _Ky = _Cov; 
 
     // add noise to covariance matrix
@@ -88,7 +99,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     // std::cout << "   _l = " << _l << std::endl;
     // std::cout << "   _sf = " << _sf << std::endl;
     // std::cout << "   _sn = " << _sn << std::endl;
-    // std::cout << "--- ----------------- ---: " << std::endl;
+    
+    std::cout << "===== TUNING GP COMPLETE======\n" << std::endl;
 }
 
 double GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL){
@@ -325,9 +337,10 @@ void GaussianProcess::sort_data(Eigen::MatrixXd& PARAM){
     }
 }
 
-void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
-    double c_length[2] = {1e-2, 100.0};                             // length scale parameter bounds
-    double c_sigma[2]  = {1e-3, 1.0};                               // signal noise variance bounds
+void GaussianProcess::gen_tune_param(){
+
+    double c_length[2] = {1e-2, 10.0};                              // length scale parameter bounds
+    double c_sigma[2]  = {1e-2, 1.0};                               // signal noise variance bounds
     double c_noise[2]  = {1e-7, 1e-3};                              // noise variance bounds
 
     int pop = 24;                                                   // population size
@@ -342,10 +355,10 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
     std::mt19937 gen(rd());                                         // Seed the random number generator
     std::uniform_real_distribution<double> distribution(0.0, 1.0);  // Define the range [0.0, 1.0)
 
-    // initialize parameter vectors 
-    param(0, 0) = 1.0;
-    param(0, 1) = .76;
-    param(0, 2) = 0.000888;
+    // best guess value
+    param(0, 0) = _l;
+    param(0, 1) = _sf;
+    param(0, 2) = _sn;
     for (int i = 1; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
@@ -362,11 +375,10 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
 
     for (int g = 0; g < G; ++g){
         
-        std::cout << "generation: " << g << std::endl;
+        // std::cout << "generation: " << g << std::endl;
 
         // loop over population
         for (int i = 0; i < pop; ++i){
-
             // compute negative log-likelihood
             param(i, 3) = this->compute_lml(param(i, 0), param(i, 1), param(i, 2));
         }
@@ -394,10 +406,10 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
                 param(i, 2) = c_noise[0]  + (c_noise[1]  -  c_noise[0]) * distribution(gen);
             }
 
-            std::cout << "top performer: " << param(0, 3) << std::endl;
-            std::cout << "    length: "    << param(0, 0) << std::endl;
-            std::cout << "    sigma:  "    << param(0, 1) << std::endl;
-            std::cout << "    noise:  "    << param(0, 2) << std::endl;
+            // std::cout << "top performer: " << param(0, 3) << std::endl;
+            // std::cout << "    length: "    << param(0, 0) << std::endl;
+            // std::cout << "    sigma:  "    << param(0, 1) << std::endl;
+            // std::cout << "    noise:  "    << param(0, 2) << std::endl;
 
             // evaluate loss function of gaussian process with top performer 
             if (_val_scaled){
@@ -408,7 +420,7 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
                 cost.push_back(this->validate(_x_val, _y_val)); 
             }
             
-            std::cout << "\n====================================\n" << std::endl;
+            // std::cout << "\n====================================\n" << std::endl;
         }
     }
 
@@ -434,7 +446,6 @@ void GaussianProcess::gen_opt(double& _L, double& SF, double& SN){
     }
     store_params.close();
     store_performance.close();
-    std::cout << "--- data saved ---\n" << std::endl;
 
     // save best parameters to object
     _l    = param(0, 0);  // length scale
