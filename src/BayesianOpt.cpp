@@ -292,7 +292,7 @@ void BayesianOpt::optimize() {
     this->evaluate_samples();
 
     // run loop
-    for (int iter = 1; iter < 10; ++iter) {
+    for (int iter = 1; iter < 2; ++iter) {
         std::cout << "\n===== ITERATION " << iter << " =====" << std::endl;
         // update data
         this->build_dataset(_bopti, *_x_train, *_y_train);
@@ -320,6 +320,9 @@ void BayesianOpt::optimize() {
         std::cout << "===== =========== =====" << std::endl;
     }
 
+    // rebuild dataset
+    this->build_dataset(_bopti, *_x_train, *_y_train);
+    
     // save cost and sort data
     this->save_cost();
     this->sort_data();
@@ -502,19 +505,15 @@ void BayesianOpt::sort_data() {
     inds_s = Eigen::VectorXi::LinSpaced(_y_train->size(),
                                         0,
                                         _y_train->size() - 1);
-
-    std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
-             [this](int a, int b) {
-                return (*_y_train)(a) < (*_y_train)(b);
-                });
-
-    // sort data
-    *_y_train = (*_y_train)(inds_s);
-    *_x_train = (*_x_train)(inds_s, Eigen::all);
+    std::sort(inds_s.data(), inds_s.data() + inds_s.size(), 
+            [this](int a, int b) {
+                const double epsilon = 1e-6;
+                return (*_y_train)(a) + epsilon < (*_y_train)(b);
+        });
 
     // concatenate data for saving
     Eigen::MatrixXd tot_data(_x_train->rows(), _x_train->cols()+1);
-    tot_data << *_x_train, *_y_train;
+    tot_data << (*_x_train)(inds_s, Eigen::all), (*_y_train)(inds_s);
 
     // save data
     std::ofstream my_file;
