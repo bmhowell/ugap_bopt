@@ -15,8 +15,8 @@ int main(int argc, char** argv) {
     // opt constraints (default) and sim settings (default)
     constraints c;
     sim         s;
-    s.bootstrap = true;
-    s.time_stepping = 2;
+    s.bootstrap     = true;
+    s.time_stepping = 0;
     s.update_time_stepping_values();
 
     // MACBOOK PRO
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     int ndata0;
     bool multi_thread = true;
     if (s.bootstrap) {
-        ndata0 = omp_get_num_procs();
+        ndata0 = omp_get_num_procs()-1;
         std::cout << "Number of threads: " << ndata0 << std::endl;
         bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
 

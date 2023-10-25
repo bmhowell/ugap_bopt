@@ -217,7 +217,7 @@ void BayesianOpt::qLCB(int iter) {
 
 void BayesianOpt::evaluate_samples() {
     // evaluate top candidates
-    _num_evals = omp_get_num_procs();
+    _num_evals = omp_get_num_procs()-1;
     std::vector<bopt> voxels_evals;
 
     #pragma omp parallel for
@@ -344,9 +344,6 @@ void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
     // build dataset for training only
     int num_data = bopti.size();
 
-    // record top performers
-    std::vector<double> cost;
-
     // populate training and validation sets
     y_train.resize(num_data);
     x_train.resize(num_data, 5);
@@ -358,18 +355,18 @@ void BayesianOpt::build_dataset(std::vector<bopt> &bopti,
         x_train(i, 4) = bopti[i].uvt;
         y_train(i)    = bopti[i].obj;
         if (_current_iter == 0) {
-            cost.push_back(bopti[i].obj);
+            _cost.push_back(bopti[i].obj);
         }
     }
 
     if (_current_iter == 0) {
         // sort cost
-        std::sort(cost.begin(), cost.end());
+        std::sort(_cost.begin(), _cost.end());
 
         // computer top, avg top, and avg cost
-        _top_obj.push_back(cost[0]);
-        _avg_top_obj.push_back(std::accumulate(cost.begin(), cost.begin() + 5, 0.0) / 5);
-        _avg_obj.push_back(std::accumulate(cost.begin(), cost.end(), 0.0) / cost.size());
+        _top_obj.push_back(_cost[0]);
+        _avg_top_obj.push_back(std::accumulate(_cost.begin(), _cost.begin() + 5, 0.0) / 5);
+        _avg_obj.push_back(std::accumulate(_cost.begin(), _cost.end(), 0.0) / _cost.size());
     }
 
     // increment current iteration 
@@ -514,6 +511,18 @@ void BayesianOpt::sort_data() {
     // sort data
     *_y_train = (*_y_train)(inds_s);
     *_x_train = (*_x_train)(inds_s, Eigen::all);
+
+    // concatenate data for saving
+    Eigen::MatrixXd tot_data(_x_train->rows(), _x_train->cols()+1);
+    tot_data << *_x_train, *_y_train;
+
+    // save data
+    std::ofstream my_file;
+    my_file.open(_file_path + "/tot_data.dat");
+    my_file << "temp, rp, vp, uvi, uvt, obj" << std::endl;
+    my_file << tot_data;
+    my_file.close();
+
 }
 
 

@@ -66,7 +66,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
-    std::cout << "--- Parameter tunning/Training time time: " << duration / 60 << "min ---" << std::endl;
+    std::cout << "--- Parameter tunning/Training time: " << duration / 60 << "min ---" << std::endl;
     std::cout << "--- Parameter Tuning Complete ---\n" << std::endl;
     
     std::cout << "\nlog_marginal_likelihood: " << _lml << std::endl;
