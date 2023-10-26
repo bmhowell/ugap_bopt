@@ -82,6 +82,17 @@ private:
     std::vector<double> _avg_top_obj;
     std::vector<double> _cost;
 
+    // parameters over time
+    std::vector<double> _tot_length;
+    std::vector<double> _tot_sigma;
+    std::vector<double> _tot_noise;
+    std::vector<double> _tot_temp;
+    std::vector<double> _tot_rp;
+    std::vector<double> _tot_vp;
+    std::vector<double> _tot_uvi;
+    std::vector<double> _tot_uvt;
+
+
     // PRIVATE MEMBER FUNCTIONS
     void build_dataset(std::vector<bopt> &bopti,
                        Eigen::MatrixXd   &x_train,

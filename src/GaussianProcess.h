@@ -185,6 +185,12 @@ public:
     Eigen::VectorXd get_y_test_std();
 
     std::vector<int> get_candidates();
+
+    double get_length_param();
+
+    double get_sigma_param();
+    
+    double get_noise_param();
 };
 
 #endif // SRC_GAUSSIANPROCESS_H_

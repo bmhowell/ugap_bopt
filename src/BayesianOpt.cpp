@@ -264,6 +264,8 @@ void BayesianOpt::evaluate_samples() {
 
     std::cout << "--- finished new evaluations ---" << std::endl;
 
+    
+
     // sort cost
     std::sort(_cost.begin(), _cost.end());
 
@@ -277,7 +279,28 @@ void BayesianOpt::evaluate_samples() {
 
     // concatenate data
     _bopti.insert(_bopti.end(), voxels_evals.begin(), voxels_evals.end());
-    this->store_tot_data(_bopti, _bopti.size());
+    // this->store_tot_data(_bopti, _bopti.size());
+    
+    // find index associated with lowest cost
+    int ind;
+    double min_cost = _bopti[0].obj;
+    for (int i = 0; i < _bopti.size(); ++i) {
+        if (_bopti[i].obj < min_cost) {
+            min_cost = _bopti[i].obj;
+            ind = i;
+        }
+    }
+
+    // store parameters over time
+    _tot_length.push_back(_model.get_length_param());
+    _tot_sigma.push_back(_model.get_sigma_param());
+    _tot_noise.push_back(_model.get_noise_param());
+    
+    _tot_temp.push_back(_bopti[ind].temp);
+    _tot_rp.push_back(_bopti[ind].rp);
+    _tot_vp.push_back(_bopti[ind].vp);
+    _tot_uvi.push_back(_bopti[ind].uvi);
+    _tot_uvt.push_back(_bopti[ind].uvt);
 }
 
 void BayesianOpt::optimize() {
@@ -292,7 +315,7 @@ void BayesianOpt::optimize() {
     this->evaluate_samples();
 
     // run loop
-    for (int iter = 1; iter < 2; ++iter) {
+    for (int iter = 1; iter < 10; ++iter) {
         std::cout << "\n===== ITERATION " << iter << " =====" << std::endl;
         // update data
         this->build_dataset(_bopti, *_x_train, *_y_train);
@@ -324,6 +347,7 @@ void BayesianOpt::optimize() {
     this->build_dataset(_bopti, *_x_train, *_y_train);
     
     // save cost and sort data
+    this->store_tot_data(_bopti, _bopti.size());
     this->save_cost();
     this->sort_data();
 
@@ -470,7 +494,7 @@ void BayesianOpt::gen_test_points(Eigen::MatrixXd &x_smpl) {
 void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
     std::cout << "\n--- storing data ---\n" << std::endl;
     std::ofstream my_file;
-    my_file.open(_file_path + "/tot_bopt.dat");
+    my_file.open(_file_path + "/tot_bopt.txt");
     my_file << "temp, rp, vp, uvi, uvt, obj, tn" << std::endl;
 
     for (int id = 0; id < num_sims; ++id) {
@@ -487,14 +511,32 @@ void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
 
 void BayesianOpt::save_cost() {
     std::ofstream my_file;
-    my_file.open(_file_path + "/bopt_cost.dat");
-    my_file << "iter, avg_obj, top_obj, avg_top_obj" << std::endl;
+    // my_file.open(_file_path + "/bopt_cost.txt");
+    // my_file << "iter, avg_obj, top_obj, avg_top_obj" << std::endl;
 
-    for (int id = 0; id < _avg_obj.size(); ++id) {
-        my_file << id << ", "
-                << _avg_obj[id] << ", "
-                << _top_obj[id] << ", "
-                << _avg_top_obj[id] << std::endl;
+    // for (int id = 0; id < _avg_obj.size(); ++id) {
+    //     my_file << id << ", "
+    //             << _avg_obj[id] << ", "
+    //             << _top_obj[id] << ", "
+    //             << _avg_top_obj[id] << std::endl;
+    // }
+    // my_file.close();
+
+    // save best params over each iteration
+    my_file.open(_file_path + "/bopt_params.txt");
+    my_file << "length, sigma, noise, temp, rp, vp, uvi, uvt, avg_obj, avg_top_obj, top_obj" << std::endl;
+    for (int ind = 0; ind < _tot_length.size(); ++ind) {
+        my_file << _tot_length[ind] << ", "
+                << _tot_sigma[ind]  << ", "
+                << _tot_noise[ind]  << ", "
+                << _tot_temp[ind]   << ", "
+                << _tot_rp[ind]     << ", "
+                << _tot_vp[ind]     << ", "
+                << _tot_uvi[ind]    << ", "
+                << _tot_uvt[ind]    << ", "
+                << _avg_obj[ind] << ", "
+                << _avg_top_obj[ind] << ", "
+                << _top_obj[ind] << std::endl;
     }
     my_file.close();
 }
@@ -517,13 +559,12 @@ void BayesianOpt::sort_data() {
 
     // save data
     std::ofstream my_file;
-    my_file.open(_file_path + "/tot_data.dat");
+    my_file.open(_file_path + "/tot_data.txt");
     my_file << "temp, rp, vp, uvi, uvt, obj" << std::endl;
     my_file << tot_data;
     my_file.close();
 
 }
-
 
 double BayesianOpt::inv_decay_schdl(int iter) {
     // subtract of initial n data points

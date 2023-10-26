@@ -218,6 +218,18 @@ std::vector<int> GaussianProcess::get_candidates(){
     return _candidates;
 }
 
+double GaussianProcess::get_length_param(){
+    return _l;
+}
+
+double GaussianProcess::get_sigma_param(){
+    return _sf;
+}
+
+double GaussianProcess::get_noise_param(){
+    return _sn;
+}
+
 // PRIVATE MEMBER FUNCTIONS
 /* infrastructure functions */
 void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma){
@@ -411,14 +423,14 @@ void GaussianProcess::gen_tune_param(){
             // std::cout << "    sigma:  "    << param(0, 1) << std::endl;
             // std::cout << "    noise:  "    << param(0, 2) << std::endl;
 
-            // evaluate loss function of gaussian process with top performer 
-            if (_val_scaled){
-                _l = param(0, 0);
-                _sf = param(0, 1);
-                _sn = param(0, 2);
+            // // evaluate loss function of gaussian process with top performer 
+            // if (_val_scaled){
+            //     _l = param(0, 0);
+            //     _sf = param(0, 1);
+            //     _sn = param(0, 2);
 
-                cost.push_back(this->validate(_x_val, _y_val)); 
-            }
+            //     cost.push_back(this->validate(_x_train, _y_train)); 
+            // }
             
             // std::cout << "\n====================================\n" << std::endl;
         }
@@ -428,24 +440,25 @@ void GaussianProcess::gen_tune_param(){
     std::cout << "--- storing data ---\n" << std::endl;
     std::ofstream store_params, store_performance, store_cost; 
     store_params.open(_file_path      + "/params.txt");
-    store_performance.open(_file_path + "/performance.txt");
-    store_cost.open(_file_path        + "/cost.txt");
+    store_performance.open(_file_path + "/gp_lml.txt");
+    // store_cost.open(_file_path        + "/cost.txt");
 
     // write to file
     store_params      << "length, sigma, noise"                 << std::endl;
     store_performance << "top_performer, avg_parent, avg_total" << std::endl;
-    store_cost        << "cost"                                 << std::endl;
+    // store_cost        << "cost"                                 << std::endl;
     for (int i = 0; i < top_performer.size(); ++i){
         store_performance << top_performer[i] << "," << avg_parent[i] << "," << avg_total[i] << std::endl;
         if (i < param.rows()){
             store_params << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
         }
-        if (i < cost.size()){
-            store_cost << cost[i] << "," << std::endl;
-        }
+        // if (i < cost.size()){
+        //     store_cost << cost[i] << "," << std::endl;
+        // }
     }
     store_params.close();
     store_performance.close();
+    // store_cost.close();
 
     // save best parameters to object
     _l    = param(0, 0);  // length scale

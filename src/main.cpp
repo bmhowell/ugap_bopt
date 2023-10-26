@@ -21,12 +21,12 @@ int main(int argc, char** argv) {
 
     // MACBOOK PRO
     std::string file_path;
-    // file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
-    //             + std::to_string(s.time_stepping);
+    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
+                + std::to_string(s.time_stepping);
 
     // LINUX CENTRAL COMPUTING
-    file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
-              + std::to_string(s.time_stepping);
+    // file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
+    //           + std::to_string(s.time_stepping);
 
     std::cout << "\n--- INITIALIZING OPT. FRAMEWORK ---" << std::endl;
 
