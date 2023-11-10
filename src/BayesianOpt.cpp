@@ -217,7 +217,7 @@ void BayesianOpt::qLCB(int iter) {
 
 void BayesianOpt::evaluate_samples() {
     // evaluate top candidates
-    _num_evals = omp_get_num_procs()-1;
+    _num_evals = omp_get_num_procs();
     std::vector<bopt> voxels_evals;
 
     #pragma omp parallel for
@@ -279,12 +279,11 @@ void BayesianOpt::evaluate_samples() {
 
     // concatenate data
     _bopti.insert(_bopti.end(), voxels_evals.begin(), voxels_evals.end());
-    // this->store_tot_data(_bopti, _bopti.size());
     
-    // find index associated with lowest cost
+    // find index associated with lowest cost for batch
     int ind;
     double min_cost = _bopti[0].obj;
-    for (int i = 0; i < _bopti.size(); ++i) {
+    for (int i = _bopti.size()-omp_get_num_procs(); i < _bopti.size(); ++i) {
         if (_bopti[i].obj < min_cost) {
             min_cost = _bopti[i].obj;
             ind = i;

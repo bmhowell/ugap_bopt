@@ -21,15 +21,16 @@ int main(int argc, char** argv) {
 
     // MACBOOK PRO
     std::string file_path;
-    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
-                + std::to_string(s.time_stepping);
+    //file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
+    //            + std::to_string(s.time_stepping);
 
     // LINUX CENTRAL COMPUTING
-    // file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
-    //           + std::to_string(s.time_stepping);
+    file_path = "/home/brian/Documents/brian/ugap_opt/output_"
+                + std::to_string(s.time_stepping);
 
     std::cout << "\n--- INITIALIZING OPT. FRAMEWORK ---" << std::endl;
-
+    std::cout << "saving to: " << file_path << std::endl;
+    std::cout << "time_stepping: " << s.time_stepping << std::endl;
     // data storage
     std::vector<bopt> *bopti = new std::vector<bopt>;
 
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
     int ndata0;
     bool multi_thread = true;
     if (s.bootstrap) {
-        ndata0 = omp_get_num_procs()-1;
+        ndata0 = omp_get_num_procs();
         std::cout << "Number of threads: " << ndata0 << std::endl;
         bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
 
@@ -71,6 +72,9 @@ int main(int argc, char** argv) {
     auto end = std::chrono::high_resolution_clock::now();
     auto t = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     auto duration = t.count() / 1e6;
+    std::ofstream time_file;
+    time_file.open(file_path + "/time_info.txt");
+    time_file << "---- Optimization time: " << duration / 60 << " min ----" << std::endl;
     std::cout << "\n---Time taken by code segment: "
               << duration  / 60
               << " min---" << std::endl;
