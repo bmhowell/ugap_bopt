@@ -249,8 +249,12 @@ void BayesianOpt::evaluate_samples() {
         #pragma omp critical
         {
             int thread_id = omp_get_thread_num();
-            voxels_evals.push_back(b);
-            _cost.push_back(b.obj);
+            if (!std::isnan(b.obj)) {
+                voxels_evals.push_back(b);
+                _cost.push_back(b.obj);
+            } else {
+                std::cout << "\nWARNING: nan detected\n" << std::endl;
+            }
             std::cout << "Thread " << thread_id << std::endl;
             std::cout << " | b.obj: " << b.obj 
                       << " | b.temp: "<< b.temp

@@ -358,7 +358,7 @@ void GaussianProcess::gen_tune_param(){
     int pop = 24;                                                   // population size
     int P   = 4;                                                    // number of parents
     int C   = 4;                                                    // number of children
-    int G   = 100;                                                 // number of generations
+    int G   = 100;                                                  // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
     Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
 
@@ -383,7 +383,8 @@ void GaussianProcess::gen_tune_param(){
     std::vector<double> top_performer; 
     std::vector<double> avg_parent; 
     std::vector<double> avg_total; 
-    std::vector<double> cost; 
+    std::vector<double> cost;
+    double lml_output;
 
     for (int g = 0; g < G; ++g){
         
@@ -392,7 +393,12 @@ void GaussianProcess::gen_tune_param(){
         // loop over population
         for (int i = 0; i < pop; ++i){
             // compute negative log-likelihood
-            param(i, 3) = this->compute_lml(param(i, 0), param(i, 1), param(i, 2));
+            lml_output  = this->compute_lml(param(i, 0), param(i, 1), param(i, 2));
+            if (!std::isnan(lml_output)) {
+                param(i, 3) = lml_output;
+            } else {
+                param(i, 3) = -1000.0;
+            }
         }
 
         this->sort_data(param);
