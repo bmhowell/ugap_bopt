@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     auto start = std::chrono::high_resolution_clock::now();
 
     //////////////  PARSE ARGS  //////////////
-    // opt constraints (default) and sim settings (default)
+    // opt constrazints (default) and sim settings (default)
     constraints c;
     sim         s;
     s.bootstrap     = true;

@@ -52,7 +52,8 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     this->gen_tune_param();
 
     // compute _lml, _alpha and _L
-    _lml = this->compute_lml(_l, _sf, _sn);
+    double lml_ = this->compute_lml(_l, _sf, _sn);
+    if (!std::isnan(lml_)) { _lml = lml_; } else { _lml = -1000.0; }
 
     // compute covariance matrix
     this->kernelGP(_x_train, _x_train, _l, _sf);
@@ -423,22 +424,6 @@ void GaussianProcess::gen_tune_param(){
                 param(i, 1) = c_sigma[0]  + (c_sigma[1]  -  c_sigma[0]) * distribution(gen);
                 param(i, 2) = c_noise[0]  + (c_noise[1]  -  c_noise[0]) * distribution(gen);
             }
-
-            // std::cout << "top performer: " << param(0, 3) << std::endl;
-            // std::cout << "    length: "    << param(0, 0) << std::endl;
-            // std::cout << "    sigma:  "    << param(0, 1) << std::endl;
-            // std::cout << "    noise:  "    << param(0, 2) << std::endl;
-
-            // // evaluate loss function of gaussian process with top performer 
-            // if (_val_scaled){
-            //     _l = param(0, 0);
-            //     _sf = param(0, 1);
-            //     _sn = param(0, 2);
-
-            //     cost.push_back(this->validate(_x_train, _y_train)); 
-            // }
-            
-            // std::cout << "\n====================================\n" << std::endl;
         }
     }
 

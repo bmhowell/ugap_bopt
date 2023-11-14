@@ -15,6 +15,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <chrono>
+#include <algorithm>
 #define EIGEN_USE_BLAS
 
 // Function type definition

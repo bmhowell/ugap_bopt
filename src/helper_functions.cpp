@@ -42,12 +42,12 @@ double gen_data(float tfinal,
                        file_path,
                        multi_thread);
 
-    VoxelSystem1.ComputeParticles(bopti.rp, bopti.vp);
+    VoxelSystem1.computeParticles(bopti.rp, bopti.vp);
     if (simi.save_density == 1) {
-        VoxelSystem1.Density2File();
+        VoxelSystem1.density2File();
     }
 
-    VoxelSystem1.Simulate(simi.method, simi.save_voxel);
+    VoxelSystem1.simulate(simi.method, simi.save_voxel);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto t = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -59,12 +59,12 @@ double gen_data(float tfinal,
                   << std::endl;
 
         std::cout << "testing obj: "
-                  << VoxelSystem1._obj
+                  << VoxelSystem1.getObjective()
                   << std::endl;
     } else {
         std::cout << "---sim " << idsim << " complete ----" << std::endl;
     }
-    return VoxelSystem1._obj;
+    return VoxelSystem1.getObjective();
 }
 
 // initialize input variables

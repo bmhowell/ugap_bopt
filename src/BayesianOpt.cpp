@@ -241,10 +241,10 @@ void BayesianOpt::evaluate_samples() {
                         _file_path,
                         true);
 
-        voxel_sim.ComputeParticles(b.rp,
+        voxel_sim.computeParticles(b.rp,
                                    b.vp);
-        voxel_sim.Simulate(_s.method, _s.save_voxel);
-        b.obj = voxel_sim._obj;
+        voxel_sim.simulate(_s.method, _s.save_voxel);
+        b.obj = voxel_sim.getObjective();
         
         #pragma omp critical
         {

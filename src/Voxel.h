@@ -6,10 +6,9 @@
 #define UGAPDIFFUSION_VOXEL_H
 #include "common.h"
 
-
 class Voxel {
 
-private:
+ private:
     // MEMBER VARIABLES
 
     // simulation parameters
@@ -128,24 +127,31 @@ private:
     std::vector<double> _total_time_steps;         // time discretization
     std::vector<double> _z_space;                  // spatial discretization
 
-
+    // track average quantities
+    std::vector<double> _c_PI_avg;
+    std::vector<double> _c_PIdot_avg;
+    std::vector<double> _c_Mdot_avg;
+    std::vector<double> _c_M_avg;
+    std::vector<double> _theta_avg;
+    
     // data outputs
     std::ofstream _print_sim_config; 
     std::ofstream _print_density;
     std::ofstream _print_concentrations;
     std::ofstream _print_avg_concentrations;
 
-public:
-    // output file path
-    std::string _file_path;                        // set correct file path to output dependent on computer
-    
     // optimization objective
     double    _obj;                                // |   ---   |  objective function
     double    _vp;                                 // |   ---   |  volume fraction of particles
     double    _rp;                                 // |    m    |  radius of particles
     
+    // output file path
+    std::string _file_path;                        // set correct file path to output dependent on computer
     bool      _multi_thread; 
 
+
+ public:
+    
     /* overload constructor */
     Voxel(float tf,
           double dt,
@@ -161,51 +167,51 @@ public:
     ~Voxel();
 
     // helper functions
-    double SquaredDiff(double val_1, double val_2);
+    double squaredDiff(double val_1, double val_2);
         // SquaredDiff - returns the squared difference between two values for l2 norm
     
-    void UniqueVec(std::vector<int>& vec);
+    void uniqueVec(std::vector<int>& vec);
         // uniqueIntegers - returns a vector of unique integers
 
-    void Node2Coord(int node, int (&coord)[3]); 
+    void node2Coord(int node, int (&coord)[3]); 
         // Mapping node number to (i, j, k) coordinates
     
-    int Coord2Node(int (&coord)[3]);
+    int coord2Node(int (&coord)[3]);
         // Mapping (i, j, k) coordinates to node number
 
     // function declarations
-    void ComputeParticles(double radius_1, double solids_loading);
+    void computeParticles(double radius_1, double solids_loading);
         // ComputeParticles - adds particles to resin
 
-    void ComputeRxnRateConstants();
+    void computeRxnRateConstants();
 
     // equation 1
-    double IRate(std::vector<double> &conc_PI, double I0, double z, int node) const;
+    double iRate(std::vector<double> &conc_PI, double I0, double z, int node) const;
         // PhotoinitiatorRate - right hand side of photoinitiator ODE
 
 
     // equation 2
-    double PIdotRate(std::vector<double> &conc_PIdot,
+    double piDotRate(std::vector<double> &conc_PIdot,
                               std::vector<double> &conc_PI,
                               std::vector<double> &conc_M,
                               double I0, double z, int node);
 
 
     // equation 3
-    double MdotRate(std::vector<double> &conc_Mdot,
+    double mDotRate(std::vector<double> &conc_Mdot,
                     std::vector<double> &conc_PIdot,
                     std::vector<double> &conc_M,
                     int node);
 
 
     // equation 4
-    double MRate(std::vector<double> &conc_M,
+    double mRate(std::vector<double> &conc_M,
                  std::vector<double> &conc_Mdot,
                  std::vector<double> &conc_PIdot,
                  int node);
 
     // equation 5
-    double TempRate(std::vector<double>     &temperature,
+    double tempRate(std::vector<double>     &temperature,
                         std::vector<double> &conc_M,
                         std::vector<double> &conc_Mdot,
                         std::vector<double> &conc_PI,
@@ -213,7 +219,7 @@ public:
                         double intensity, int node);
 
     // solve system simultaneously
-    void SolveSystem(std::vector<double> &c_PI_next,
+    void solveSystem(std::vector<double> &c_PI_next,
                      std::vector<double> &c_PIdot_next,
                      std::vector<double> &c_Mdot_next,
                      std::vector<double> &c_M_next,
@@ -221,11 +227,11 @@ public:
                      double I0, double dt, int method);
 
     // write solutions to files
-    void Config2File(double dt); 
+    void config2File(double dt); 
 
-    void Density2File();
+    void density2File();
 
-    void AvgConcentrations2File(int counter, 
+    void avgConcentrations2File(int counter, 
                                 std::vector<double> &c_PI_next,
                                 std::vector<double> &c_PIdot_next,
                                 std::vector<double> &c_Mdot_next,
@@ -233,7 +239,7 @@ public:
                                 std::vector<double> &theta_next,
                                 double time); 
 
-    void Concentrations2File(int counter,
+    void concentrations2File(int counter,
                              std::vector<double> &c_PI_next,
                              std::vector<double> &c_PIdot_next,
                              std::vector<double> &c_Mdot_next,
@@ -241,7 +247,7 @@ public:
                              std::vector<double> &theta_next,
                              double time);
 
-    void NonBoundaries2File(int counter, 
+    void nonBoundaries2File(int counter, 
                             std::vector<double> &c_PI_next,
                             std::vector<double> &c_PIdot_next,
                             std::vector<double> &c_Mdot_next,
@@ -251,8 +257,10 @@ public:
                             int (&coords)[3]);
 
 
-    void Simulate(int method, int save_voxel);
+    void simulate(int method, int save_voxel);
         // Simulate - runs simulation of UV curing kinetics
+
+    double getObjective();
 
 };
 

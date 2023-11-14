@@ -126,8 +126,7 @@ Voxel::Voxel(float tf,
         z_increment += _h;
     }
 
-    /* initialize voxel values */
-
+    /* INITIALIZE VOXEL VALUES */
     // UV gradient
     std::fill_n(std::back_inserter(_uv_values),     _n_vol_nodes, 0.);
 
@@ -176,23 +175,23 @@ Voxel::Voxel(float tf,
 
 // Destructor
 Voxel::~Voxel() {
-    // std::cout << "Voxel destructor called" << std::endl;
+    std::cout << "Voxel destructor called" << std::endl;
 }
 
 // helper functions
-double Voxel::SquaredDiff(double val_1, double val_2){
+double Voxel::squaredDiff(double val_1, double val_2){
     return (val_1 - val_2) * (val_1 - val_2);
 }
 
 
-void Voxel::UniqueVec(std::vector<int>& vec) {
+void Voxel::uniqueVec(std::vector<int>& vec) {
     std::sort(vec.begin(), vec.end());
     auto last = std::unique(vec.begin(), vec.end());
     vec.erase(last, vec.end());
 }
 
 
-void Voxel::Node2Coord(int node, int (&coord)[3]){
+void Voxel::node2Coord(int node, int (&coord)[3]){
     /*
         Given a 3D cube of size m by n by p, and integer coordinates (i, j, k)
         where 0 <= i < m, 0 <= j < n, and 0 <= k < p, the grid number can be 
@@ -206,7 +205,7 @@ void Voxel::Node2Coord(int node, int (&coord)[3]){
 }
 
 
-int Voxel::Coord2Node(int (&coord)[3]){
+int Voxel::coord2Node(int (&coord)[3]){
     /*
         Given a 3D cube of size m by n by p, and integer coordinates (i, j, k)
         where 0 <= i < m, 0 <= j < n, and 0 <= k < p, the grid number can be 
@@ -216,7 +215,7 @@ int Voxel::Coord2Node(int (&coord)[3]){
 }
 
 
-void Voxel::ComputeParticles(double radius_1, double solids_loading) {
+void Voxel::computeParticles(double radius_1, double solids_loading) {
     
     // total number of host nodes for particles
     double n_particle_nodes = std::round(_n_vol_nodes * solids_loading);
@@ -245,14 +244,14 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
 
         // step 2: generate random seed location for particle
         node_particle = ceil(_n_vol_nodes * rand_loc) - 1;
-        this->Node2Coord(node_particle, particle_coords);
+        this->node2Coord(node_particle, particle_coords);
         
         // step 3: find nodes that are within the distance of the seed location
         for (int node = 0; node < _n_vol_nodes; node++){
-            this->Node2Coord(node, _current_coords);
-            particle_distance = sqrt(   SquaredDiff(_current_coords[0] * _coord_map_const, particle_coords[0] * _coord_map_const)
-                                      + SquaredDiff(_current_coords[1] * _coord_map_const, particle_coords[1] * _coord_map_const)
-                                      + SquaredDiff(_current_coords[2] * _coord_map_const, particle_coords[2] * _coord_map_const) );
+            this->node2Coord(node, _current_coords);
+            particle_distance = sqrt(   squaredDiff(_current_coords[0] * _coord_map_const, particle_coords[0] * _coord_map_const)
+                                      + squaredDiff(_current_coords[1] * _coord_map_const, particle_coords[1] * _coord_map_const)
+                                      + squaredDiff(_current_coords[2] * _coord_map_const, particle_coords[2] * _coord_map_const) );
 
             // check if node is the particle radius range
             if (particle_distance <= radius_1){
@@ -271,8 +270,8 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
         }
 
         // ensure vectors contain no duplicated nodes
-        this->UniqueVec(_particles_ind);
-        this->UniqueVec(_particle_interfacial_nodes);
+        this->uniqueVec(_particles_ind);
+        this->uniqueVec(_particle_interfacial_nodes);
 
         // assign interfacial material properties
         for (int i = 0; i < _particle_interfacial_nodes.size(); i++){
@@ -338,7 +337,7 @@ void Voxel::ComputeParticles(double radius_1, double solids_loading) {
 }
 
 
-void Voxel::ComputeRxnRateConstants() {
+void Voxel::computeRxnRateConstants() {
     /*
      *   @updateVec - updates the reaction rate constants:
      *                          - _f_free_volume
@@ -389,7 +388,7 @@ void Voxel::ComputeRxnRateConstants() {
 }
 
 
-double Voxel::IRate(std::vector<double> &conc_PI, double I0, double z, int node) const {
+double Voxel::iRate(std::vector<double> &conc_PI, double I0, double z, int node) const {
     if (_material_type[node] == 1 && _timer < _uvt){
         // material is ugap
         // return (-_phi * _eps * I0 * conc_PI[node] * exp( -_eps*conc_PI[node]*z) / 2);
@@ -408,7 +407,7 @@ double Voxel::IRate(std::vector<double> &conc_PI, double I0, double z, int node)
 }
 
 
-double Voxel::PIdotRate(std::vector<double> &conc_PIdot,
+double Voxel::piDotRate(std::vector<double> &conc_PIdot,
                                  std::vector<double> &conc_PI,
                                  std::vector<double> &conc_M,
                                  double I0, double z, int node){
@@ -434,12 +433,12 @@ double Voxel::PIdotRate(std::vector<double> &conc_PIdot,
        // compute chemical diffusion as a function of variable diffusivity
         double denom = 1 / _h / _h; 
 
-        diffuse = (  diffusivity[0] * (conc_PI[node+1]                - conc_PI[node])
-                   - diffusivity[1] * (conc_PI[node]                  - conc_PI[node - 1])
+        diffuse = (  diffusivity[0] * (conc_PI[node+1]               - conc_PI[node])
+                   - diffusivity[1] * (conc_PI[node]                 - conc_PI[node - 1])
                    + diffusivity[2] * (conc_PI[node + _nodes]         - conc_PI[node])
-                   - diffusivity[3] * (conc_PI[node]                  - conc_PI[node - _nodes])
+                   - diffusivity[3] * (conc_PI[node]                 - conc_PI[node - _nodes])
                    + diffusivity[4] * (conc_PI[node + _n_plane_nodes] - conc_PI[node])
-                   - diffusivity[5] * (conc_PI[node]                  - conc_PI[node - _n_plane_nodes])
+                   - diffusivity[5] * (conc_PI[node]                 - conc_PI[node - _n_plane_nodes])
                    ) * denom;
 
 
@@ -462,7 +461,7 @@ double Voxel::PIdotRate(std::vector<double> &conc_PIdot,
 
 
 // equation 3: d[Mdot]/_dt = k[PIdot][M] + ∇(k∇_x [Mdot]) - kt [Mdot]^2
-double Voxel::MdotRate(std::vector<double> &conc_Mdot,
+double Voxel::mDotRate(std::vector<double> &conc_Mdot,
                               std::vector<double> &conc_PIdot,
                               std::vector<double> &conc_M,
                               int node) {
@@ -509,7 +508,7 @@ double Voxel::MdotRate(std::vector<double> &conc_Mdot,
 
 
 // equation 4: d[M]/_dt = ∇(k∇_x [M]) - k[PI][M] - k[M][Mdot]   
-double Voxel::MRate(std::vector<double> &conc_M,
+double Voxel::mRate(std::vector<double> &conc_M,
                                   std::vector<double> &conc_Mdot,
                                   std::vector<double> &conc_PIdot,
                                   int node){
@@ -575,7 +574,7 @@ double Voxel::MRate(std::vector<double> &conc_M,
 }
 
 // equation 5: dθ/_dt = ( ∇_x·(K ∇_x θ) + _k_p [M] [M_n·] ΔH + ε [PI] I ) / ρ / C 
-double Voxel::TempRate(std::vector<double> &temperature,
+double Voxel::tempRate(std::vector<double> &temperature,
                        std::vector<double> &conc_M,
                        std::vector<double> &conc_Mdot,
                        std::vector<double> &conc_PI,
@@ -647,7 +646,7 @@ double Voxel::TempRate(std::vector<double> &temperature,
 };
 
 
-void Voxel::SolveSystem(std::vector<double> &c_PI_next,
+void Voxel::solveSystem(std::vector<double> &c_PI_next,
                         std::vector<double> &c_PIdot_next,
                         std::vector<double> &c_Mdot_next,
                         std::vector<double> &c_M_next,
@@ -712,7 +711,7 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
         for (int node = 0; node < _n_vol_nodes; node++){
 
             // map node to coordinates
-            Node2Coord(node, _current_coords); 
+            node2Coord(node, _current_coords); 
             int i = _current_coords[0]; 
             int j = _current_coords[1]; 
             int k = _current_coords[2]; 
@@ -725,35 +724,35 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                 && k != 0 && k != (_nodes-1)){
 
                 // solve equation 1
-                c_PI_1[node] =   _c_PI[node] + _dt * (  (1-psi) * IRate(c_PI_0, I0, depth, node)
-                                                        +   psi   * IRate(_c_PI, I0, depth, node));
+                c_PI_1[node] =   _c_PI[node] + _dt * (  (1-psi) * iRate(c_PI_0, I0, depth, node)
+                                                        +   psi   * iRate(_c_PI, I0, depth, node));
 
-                err_step += SquaredDiff(c_PI_0[node], c_PI_1[node]);
+                err_step += squaredDiff(c_PI_0[node], c_PI_1[node]);
 
 
                 // solve equation 2
-                c_PIdot_1[node] = _c_PIdot[node] + _dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
-                                                            +   psi   * PIdotRate(_c_PIdot, _c_PI, _c_M, I0, depth, node));
+                c_PIdot_1[node] = _c_PIdot[node] + _dt * (   (1-psi) * piDotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
+                                                            +   psi   * piDotRate(_c_PIdot, _c_PI, _c_M, I0, depth, node));
 
-                err_step += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                err_step += squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                 // solve equation 3
-                c_Mdot_1[node] = _c_Mdot[node] + _dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
-                                                        +   psi   * MdotRate(_c_Mdot, _c_PIdot, _c_M, node));
+                c_Mdot_1[node] = _c_Mdot[node] + _dt * (   (1-psi) * mDotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
+                                                        +   psi   * mDotRate(_c_Mdot, _c_PIdot, _c_M, node));
 
-                err_step += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+                err_step += squaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
 
                 // solve equation 4
-                c_M_1[node] = _c_M[node] + _dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
-                                                    +   psi   * MRate(_c_M, _c_Mdot, _c_PIdot, node));
+                c_M_1[node] = _c_M[node] + _dt * (   (1-psi) * mRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
+                                                    +   psi   * mRate(_c_M, _c_Mdot, _c_PIdot, node));
 
-                err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
+                err_step += squaredDiff(c_M_0[node], c_M_1[node]);
 
                 // solve equation 5
-                theta_1[node] = _theta[node] + _dt* (   (1-psi) * TempRate(theta_0, c_M_0, c_Mdot_0, c_PI_0, _c_PIdot, I0, node)
-                                                    +   psi   * TempRate(_theta, _c_M, _c_Mdot, _c_PI, _c_PIdot, I0, node));
+                theta_1[node] = _theta[node] + _dt* (   (1-psi) * tempRate(theta_0, c_M_0, c_Mdot_0, c_PI_0, _c_PIdot, I0, node)
+                                                    +   psi   * tempRate(_theta, _c_M, _c_Mdot, _c_PI, _c_PIdot, I0, node));
 
-                err_step += SquaredDiff(theta_0[node], theta_1[node]);
+                err_step += squaredDiff(theta_0[node], theta_1[node]);
 
             }
 
@@ -764,26 +763,26 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
 
                 // solve non-spatially dependent equations: equation 1
                 c_PI_1[node] = _c_PI[node]
-                                + _dt*(  (1-psi) * IRate(c_PI_0, I0, depth, node)
-                                        +   psi   * IRate(_c_PI, I0, depth, node));
-                err_step +=   SquaredDiff(c_PI_0[node], c_PI_1[node]);
+                                + _dt*(  (1-psi) * iRate(c_PI_0, I0, depth, node)
+                                        +   psi   * iRate(_c_PI, I0, depth, node));
+                err_step +=   squaredDiff(c_PI_0[node], c_PI_1[node]);
                 
                 // check material type is interfacial, skip spatial dependencies for reactions
                 if (_material_type[node] == 2){
                     // solve equation 2
-                    c_PIdot_1[node] = _c_PIdot[node] + _dt * (   (1-psi) * PIdotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
-                                                            +   psi   * PIdotRate(_c_PIdot, _c_PI, _c_M, I0, depth, node));
-                    err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                    c_PIdot_1[node] = _c_PIdot[node] + _dt * (   (1-psi) * piDotRate(c_PIdot_0, c_PI_0, c_M_0, I0, depth, node)
+                                                            +   psi   * piDotRate(_c_PIdot, _c_PI, _c_M, I0, depth, node));
+                    err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                     // solve equation 3
-                    c_Mdot_1[node] = _c_Mdot[node] + _dt * (   (1-psi) * MdotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
-                                                            +   psi   * MdotRate(_c_Mdot, _c_PIdot, _c_M, node));
-                    err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+                    c_Mdot_1[node] = _c_Mdot[node] + _dt * (   (1-psi) * mDotRate(c_Mdot_0, c_PIdot_0, c_M_0, node)
+                                                            +   psi   * mDotRate(_c_Mdot, _c_PIdot, _c_M, node));
+                    err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
 
                     // solve equation 4
-                    c_M_1[node] = _c_M[node] + _dt * (   (1-psi) * MRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
-                                                    +   psi   * MRate(_c_M, _c_Mdot, _c_PIdot, node));
-                    err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
+                    c_M_1[node] = _c_M[node] + _dt * (   (1-psi) * mRate(c_M_0, c_Mdot_0, c_PIdot_0, node)
+                                                    +   psi   * mRate(_c_M, _c_Mdot, _c_PIdot, node));
+                    err_step += squaredDiff(c_M_0[node], c_M_1[node]);
 
                 }
 
@@ -795,13 +794,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node+_n_plane_nodes] - pre_2 * c_PIdot_1[node+_n_plane_nodes+_n_plane_nodes]; 
-                        err_step       += SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step       += squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node+_n_plane_nodes] - pre_2 * c_Mdot_1[node+_n_plane_nodes+_n_plane_nodes]; // second order approximation
-                        err_step      += SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        err_step      += squaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
                         
                         c_M_1[node] = pre_1 * c_M_1[node+_n_plane_nodes] - pre_2 * c_M_1[node+_n_plane_nodes+_n_plane_nodes]; // second order approximation
-                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step +=   squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
                 // top face
@@ -809,13 +808,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node-_n_plane_nodes] - pre_2 * c_PIdot_1[node-_n_plane_nodes-_n_plane_nodes]; 
-                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node-_n_plane_nodes] - pre_2 * c_Mdot_1[node-_n_plane_nodes-_n_plane_nodes]; 
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
 
                         c_M_1[node] = pre_1 * c_M_1[node-_n_plane_nodes] - pre_2 * c_M_1[node-_n_plane_nodes-_n_plane_nodes]; 
-                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step +=   squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
@@ -824,13 +823,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node+_nodes] - pre_2 * c_PIdot_1[node+_nodes+_nodes]; 
-                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node+_nodes] - pre_2 * c_Mdot_1[node+_nodes+_nodes]; 
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
+                        err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]);
 
                         c_M_1[node] = pre_1 * c_M_1[node+_nodes] - pre_2 * c_M_1[node+_nodes+_nodes]; 
-                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step +=   squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
@@ -839,13 +838,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node-_nodes] - pre_2 * c_PIdot_1[node-_nodes-_nodes];
-                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node-_nodes] - pre_2 * c_Mdot_1[node-_nodes-_nodes];
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
 
                         c_M_1[node] = pre_1 * c_M_1[node-_nodes] - pre_2 * c_M_1[node-_nodes-_nodes]; 
-                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step +=   squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
@@ -854,13 +853,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node+1] - pre_2 * c_PIdot_1[node+1+1]; 
-                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node+1] - pre_2 * c_Mdot_1[node+1+1];
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
 
                         c_M_1[node] = pre_1 * c_M_1[node+1] - pre_2 * c_M_1[node+1+1];
-                        err_step += SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step += squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
@@ -869,13 +868,13 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
                     if (_material_type[node] == 1){
                         // apply neumann bc using a second order approximation
                         c_PIdot_1[node] = pre_1 * c_PIdot_1[node-1] - pre_2 * c_PIdot_1[node-1-1]; 
-                        err_step +=   SquaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
+                        err_step +=   squaredDiff(c_PIdot_0[node], c_PIdot_1[node]);
 
                         c_Mdot_1[node] = pre_1 * c_Mdot_1[node-1] - pre_2 * c_Mdot_1[node-1-1]; 
-                        err_step +=   SquaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
+                        err_step +=   squaredDiff(c_Mdot_0[node], c_Mdot_1[node]); 
 
                         c_M_1[node] = pre_1 * c_M_1[node-1] - pre_2 * c_M_1[node-1-1];
-                        err_step +=   SquaredDiff(c_M_0[node], c_M_1[node]);
+                        err_step +=   squaredDiff(c_M_0[node], c_M_1[node]);
                     }
                 }
 
@@ -910,7 +909,7 @@ void Voxel::SolveSystem(std::vector<double> &c_PI_next,
 }
 
 
-void Voxel::Config2File(double dt){
+void Voxel::config2File(double dt){
     
     // write to file
     _print_sim_config.open(_file_path + "sim_config/sim_config.txt");
@@ -940,7 +939,7 @@ void Voxel::Config2File(double dt){
 }
 
 
-void Voxel::Density2File(){
+void Voxel::density2File(){
     // write to file
     _print_density.open(_file_path + "_density/_density.vtk");
 
@@ -1005,7 +1004,7 @@ void Voxel::Density2File(){
 
 }
 
-void Voxel::AvgConcentrations2File(int counter, 
+void Voxel::avgConcentrations2File(int counter, 
                                    std::vector<double> &c_PI_next,
                                    std::vector<double> &c_PIdot_next,
                                    std::vector<double> &c_Mdot_next,
@@ -1026,8 +1025,6 @@ void Voxel::AvgConcentrations2File(int counter,
     double avg_diff_theta_top = 0, avg_diff_theta = 0, avg_diff_theta_bot = 0; 
     
     // compute average top, total and bottom concentration, and then write to file
-    
-
     int nodes_resin = 0; 
     int nodes_top_resin = 0, nodes_bot_resin = 0; 
     for (int node = 0; node < _n_vol_nodes; node++){
@@ -1169,6 +1166,12 @@ void Voxel::AvgConcentrations2File(int counter,
     _print_avg_concentrations << avg_diff_m_top     << ", " << avg_diff_m      << ", " << avg_diff_m_bot     << ", ";
     _print_avg_concentrations << avg_diff_theta_top << ", " << avg_diff_theta  << ", " << avg_diff_theta_bot << std::endl;
 
+    // track average quantities for objective function
+    _c_PI_avg.push_back(avg_tot_cPI);
+    _c_PIdot_avg.push_back(avg_tot_cPIdot);
+    _c_Mdot_avg.push_back(avg_tot_cMdot);
+    _c_M_avg.push_back(avg_tot_cM);
+
     // _print_avg_concentrations << avg_diff_pdot << ", " << avg_diff_mdot << ", " << avg_diff_m << ", " << avg_diff_theta << std::endl;
     
     if (time == 30.0){
@@ -1178,7 +1181,7 @@ void Voxel::AvgConcentrations2File(int counter,
 
 }
 
-void Voxel::Concentrations2File(int counter,
+void Voxel::concentrations2File(int counter,
                                 std::vector<double> &c_PI_next,
                                 std::vector<double> &c_PIdot_next,
                                 std::vector<double> &c_Mdot_next,
@@ -1302,7 +1305,7 @@ void Voxel::Concentrations2File(int counter,
 }
 
 
-void Voxel::NonBoundaries2File( int counter, 
+void Voxel::nonBoundaries2File( int counter, 
                                 std::vector<double> &c_PI_next,
                                 std::vector<double> &c_PIdot_next,
                                 std::vector<double> &c_Mdot_next,
@@ -1373,7 +1376,7 @@ void Voxel::NonBoundaries2File( int counter,
     for (int node = 0; node < _n_vol_nodes; node++){
         
         // only write internal nodes
-        Node2Coord(node, _current_coords); 
+        node2Coord(node, _current_coords); 
         if (   _current_coords[0] != 0 && _current_coords[0] != (_nodes-1) 
             && _current_coords[1] != 0 && _current_coords[1] != (_nodes-1) 
             && _current_coords[2] != 0 && _current_coords[2] != (_nodes-1)){
@@ -1396,7 +1399,7 @@ void Voxel::NonBoundaries2File( int counter,
     for (int node = 0; node < _n_vol_nodes; node++){
 
         // only write internal nodes
-        Node2Coord(node, _current_coords);
+        node2Coord(node, _current_coords);
         if (   _current_coords[0] != 0 && _current_coords[0] != (_nodes-1)
             && _current_coords[1] != 0 && _current_coords[1] != (_nodes-1)
             && _current_coords[2] != 0 && _current_coords[2] != (_nodes-1)){
@@ -1418,7 +1421,7 @@ void Voxel::NonBoundaries2File( int counter,
     for (int node = 0; node < _n_vol_nodes; node++){
         
         // only write internal nodes
-        Node2Coord(node, _current_coords);
+        node2Coord(node, _current_coords);
         if (   _current_coords[0] != 0 && _current_coords[0] != (_nodes-1)
             && _current_coords[1] != 0 && _current_coords[1] != (_nodes-1)
             && _current_coords[2] != 0 && _current_coords[2] != (_nodes-1)){
@@ -1438,7 +1441,7 @@ void Voxel::NonBoundaries2File( int counter,
     for (int node = 0; node < _n_vol_nodes; node++){
         
         // only write internal nodes
-        Node2Coord(node, _current_coords);
+        node2Coord(node, _current_coords);
         if (   _current_coords[0] != 0 && _current_coords[0] != (_nodes-1)
             && _current_coords[1] != 0 && _current_coords[1] != (_nodes-1)
             && _current_coords[2] != 0 && _current_coords[2] != (_nodes-1)){
@@ -1458,7 +1461,7 @@ void Voxel::NonBoundaries2File( int counter,
     for (int node = 0; node < _n_vol_nodes; node++){
 
         // only write internal nodes
-        Node2Coord(node, _current_coords);
+        node2Coord(node, _current_coords);
         if (   _current_coords[0] != 0 && _current_coords[0] != (_nodes-1)
             && _current_coords[1] != 0 && _current_coords[1] != (_nodes-1)
             && _current_coords[2] != 0 && _current_coords[2] != (_nodes-1)){
@@ -1475,7 +1478,7 @@ void Voxel::NonBoundaries2File( int counter,
 }
 
 
-void Voxel::Simulate(int method, int save_voxel){
+void Voxel::simulate(int method, int save_voxel){
 
     // time discretization -> [0., dt, 2*dt, ..., T]
     int N_TIME_STEPS = _t_final / _dt;
@@ -1498,7 +1501,7 @@ void Voxel::Simulate(int method, int save_voxel){
         std::cout << "\n=================================="                                   << std::endl;
     }
 
-    Config2File(_dt); 
+    config2File(_dt); 
 
 
     // initialize next time step values
@@ -1509,11 +1512,11 @@ void Voxel::Simulate(int method, int save_voxel){
     std::vector<double> theta_next(_n_vol_nodes,   _theta0);
 
     // compute initial reaction rate constants
-    ComputeRxnRateConstants();
+    computeRxnRateConstants();
 
     // write initial values to files
     if (save_voxel == 1){
-        Concentrations2File(0,
+        concentrations2File(0,
                             _c_PI,
                             _c_PIdot,
                             _c_Mdot,
@@ -1522,7 +1525,7 @@ void Voxel::Simulate(int method, int save_voxel){
                             0);
     }
     
-    AvgConcentrations2File(0,
+    avgConcentrations2File(0,
                            _c_PI,
                            _c_PIdot,
                            _c_Mdot,
@@ -1544,10 +1547,10 @@ void Voxel::Simulate(int method, int save_voxel){
         }
 
         // compute energy intensity and reaction rate constants
-        ComputeRxnRateConstants();
+        computeRxnRateConstants();
 
         // solve system of equations
-        SolveSystem(c_PI_next, c_PIdot_next, c_Mdot_next, c_M_next, theta_next, uv_light, _dt, method);
+        solveSystem(c_PI_next, c_PIdot_next, c_Mdot_next, c_M_next, theta_next, uv_light, _dt, method);
 
         _c_PI    = c_PI_next;
         _c_PIdot = c_PIdot_next;
@@ -1566,16 +1569,16 @@ void Voxel::Simulate(int method, int save_voxel){
 
         if (std::abs(std::floor(_timer * 2) / 2 - _timer) < _dt || t == N_TIME_STEPS - 1){    
             if (save_voxel == 1){
-                Concentrations2File(0,
+                concentrations2File(file_counter,
                                     _c_PI,
                                     _c_PIdot,
                                     _c_Mdot,
                                     _c_M,
                                     _theta,
-                                    0);
+                                    _timer);
             }
 
-            AvgConcentrations2File(file_counter,
+            avgConcentrations2File(file_counter,
                                    c_PI_next,
                                    c_PIdot_next,
                                    c_Mdot_next,
@@ -1587,35 +1590,42 @@ void Voxel::Simulate(int method, int save_voxel){
         }
     }
 
-    double average_PI    = 0;
-    double average_PIdot = 0; 
-    double average_Mdot  = 0;  
-    double average_M     = 0;
+    double max_PI    = *std::max_element(_c_PI_avg.begin(), _c_PI_avg.end());
+    double min_PI    = std::max(*std::min_element(_c_PI_avg.begin(), _c_PI_avg.end()), 0.0);
+    double max_PIdot = *std::max_element(_c_PIdot_avg.begin(), _c_PIdot_avg.end());
+    double min_PIdot = std::max(*std::min_element(_c_PIdot_avg.begin(), _c_PIdot_avg.end()), 0.0);
+    double max_Mdot  = *std::max_element(_c_Mdot_avg.begin(), _c_Mdot_avg.end());
+    double min_Mdot  = std::max(*std::min_element(_c_Mdot_avg.begin(), _c_Mdot_avg.end()), 0.0);
+    double max_M     = *std::max_element(_c_M_avg.begin(), _c_M_avg.end());
+    double min_M     = std::max(*std::min_element(_c_M_avg.begin(), _c_M_avg.end()), 0.0);
 
-    for (int i = 0; i < _n_vol_nodes; i++){
-        average_PI   += _c_PI[i];
-        average_PIdot += _c_PIdot[i];
-        average_Mdot  += _c_Mdot[i];
-        average_M    += _c_M[i];
-    }
-
-    average_PI   /= _n_vol_nodes;
-    average_PIdot /= _n_vol_nodes;
-    average_Mdot  /= _n_vol_nodes;
-    average_M    /= _n_vol_nodes;
+    double average_PI_final    = _c_PI_avg[_c_PI_avg.size()-1];
+    double average_PIdot_final = _c_PIdot_avg[_c_PIdot_avg.size()-1]; 
+    double average_Mdot_final  = _c_Mdot_avg[_c_Mdot_avg.size()-1];  
+    double average_M_final     = _c_M_avg[_c_M_avg.size()-1];
 
     // compute weighted multi objective function
-    _obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
-    
+    // _obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
+    double obj_PI    = std::max((average_PI_final - min_PI)       / (max_PI - min_PI)      , 0.0);
+    double obj_PIdot = std::max((average_PIdot_final - min_PIdot) / (max_PIdot - min_PIdot), 0.0);
+    double obj_Mdot  = std::max((average_Mdot_final - min_Mdot)   / (max_Mdot - min_Mdot)  , 0.0);
+    double obj_M     = std::max((average_M_final - min_M)         / (max_M - min_M)        , 0.0);
+    _obj = 0.1 * obj_PI + 0.25 * obj_PIdot + 0.25 * obj_Mdot + 0.4 * obj_M;
+
     if (!_multi_thread){
         std::cout << "==================================" << std::endl;
         std::cout << "Simulation complete"                << std::endl;
         std::cout << "==================================" << std::endl;
         std::cout << "obj = " << _obj                     << std::endl;
         std::cout << "temp: " << _theta0                  << std::endl; 
-        std::cout << "uvt: " << _uvt                      << std::endl; 
-        std::cout << "I0: " << I0                         << std::endl;
-        std::cout << "_rp: " << _rp                       << std::endl;
-        std::cout << "_vp: " << _vp                       << std::endl;
+        std::cout << "uvt:  " << _uvt                     << std::endl; 
+        std::cout << "I0:   " << I0                       << std::endl;
+        std::cout << "_rp:  " << _rp                      << std::endl;
+        std::cout << "_vp:  " << _vp                      << std::endl;
+        std::cout << "==================================" << std::endl;
     }
+}
+
+double Voxel::getObjective() {
+    return _obj;
 }
