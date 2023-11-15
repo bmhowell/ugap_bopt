@@ -19,6 +19,9 @@ int main(int argc, char** argv) {
     s.time_stepping = 0;
     s.update_time_stepping_values();
 
+    // 1: PI, 2: PIdot, 3: Mdot, 4: M, 5: total
+    int obj_fn = 4;
+
     // MACBOOK PRO
     std::string file_path;
     file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
@@ -40,10 +43,10 @@ int main(int argc, char** argv) {
     if (s.bootstrap) {
         ndata0 = omp_get_num_procs();
         std::cout << "Number of threads: " << ndata0 << std::endl;
-        bootstrap(s, c, *bopti, ndata0, file_path, multi_thread);
+        bootstrap(s, c, *bopti, ndata0, file_path, multi_thread, obj_fn);
 
-        // store data
-        store_tot_data(*bopti, s, ndata0, file_path);
+        // // store data
+        // store_tot_data(*bopti, s, ndata0, file_path);
     } else {
         ndata0 = read_data(*bopti, file_path);
     }
@@ -61,12 +64,12 @@ int main(int argc, char** argv) {
     optimizer.load_data(*bopti, val);  // (bopti, _validate)
 
     // STEP 3: train the model
-    const bool pre_learned = true;
-    optimizer.condition_model(false);   // (pre-learned)
+    const bool pre_learned = false;
+    optimizer.condition_model(pre_learned);
     if (val) {optimizer.evaluate_model();};
 
     // STEP 4: optimize and evaluate new candidate simulations
-    optimizer.optimize();
+    optimizer.optimize(obj_fn);
 
     // Get the current time after the code segment finishes
     auto end = std::chrono::high_resolution_clock::now();

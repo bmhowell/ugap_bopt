@@ -34,9 +34,9 @@ class BayesianOpt {
 
     void qLCB(int iter);
 
-    void evaluate_samples();
+    void evaluate_samples(int obj_fn);
 
-    void optimize();
+    void optimize(int obj_fn);
 
 private:
     // MEMBER VARIABLES
@@ -77,8 +77,12 @@ private:
     Eigen::VectorXd *_conf_bound;
 
     // performance
-    std::vector<double> _avg_obj;
+    std::vector<double> _top_obj_pi;
+    std::vector<double> _top_obj_pidot;
+    std::vector<double> _top_obj_mdot;
+    std::vector<double> _top_obj_m;
     std::vector<double> _top_obj;
+    std::vector<double> _avg_obj;
     std::vector<double> _avg_top_obj;
     std::vector<double> _cost;
 

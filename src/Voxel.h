@@ -141,7 +141,14 @@ class Voxel {
     std::ofstream _print_avg_concentrations;
 
     // optimization objective
-    double    _obj;                                // |   ---   |  objective function
+    double    _obj;                                // |   ---   |  total obj function
+    double    _obj_PI;                             // |   ---   |  PI obj function
+    double    _obj_PIdot;                          // |   ---   |  PIdot obj function
+    double    _obj_Mdot;                           // |   ---   |  Mdot obj function
+    double    _obj_M;                              // |   ---   |  M obj function
+    double    _obj_default;                        // |   ---   |  default total obj function
+
+    // process parameters
     double    _vp;                                 // |   ---   |  volume fraction of particles
     double    _rp;                                 // |    m    |  radius of particles
     
@@ -257,8 +264,16 @@ class Voxel {
                             int (&coords)[3]);
 
 
-    void simulate(int method, int save_voxel);
+    void simulate(int method, int save_voxel, int obj_fn, double w[4]);
         // Simulate - runs simulation of UV curing kinetics
+
+    double getObjPI();
+
+    double getObjPIDot();
+
+    double getObjMDot();
+
+    double getObjM();
 
     double getObjective();
 

@@ -1478,7 +1478,7 @@ void Voxel::nonBoundaries2File( int counter,
 }
 
 
-void Voxel::simulate(int method, int save_voxel){
+void Voxel::simulate(int method, int save_voxel, int obj_fn, double w[4]){
 
     // time discretization -> [0., dt, 2*dt, ..., T]
     int N_TIME_STEPS = _t_final / _dt;
@@ -1591,13 +1591,13 @@ void Voxel::simulate(int method, int save_voxel){
     }
 
     double max_PI    = *std::max_element(_c_PI_avg.begin(), _c_PI_avg.end());
-    double min_PI    = std::max(*std::min_element(_c_PI_avg.begin(), _c_PI_avg.end()), 0.0);
+    // double min_PI    = std::max(*std::min_element(_c_PI_avg.begin(), _c_PI_avg.end()), 0.0);
     double max_PIdot = *std::max_element(_c_PIdot_avg.begin(), _c_PIdot_avg.end());
-    double min_PIdot = std::max(*std::min_element(_c_PIdot_avg.begin(), _c_PIdot_avg.end()), 0.0);
+    // double min_PIdot = std::max(*std::min_element(_c_PIdot_avg.begin(), _c_PIdot_avg.end()), 0.0);
     double max_Mdot  = *std::max_element(_c_Mdot_avg.begin(), _c_Mdot_avg.end());
-    double min_Mdot  = std::max(*std::min_element(_c_Mdot_avg.begin(), _c_Mdot_avg.end()), 0.0);
+    // double min_Mdot  = std::max(*std::min_element(_c_Mdot_avg.begin(), _c_Mdot_avg.end()), 0.0);
     double max_M     = *std::max_element(_c_M_avg.begin(), _c_M_avg.end());
-    double min_M     = std::max(*std::min_element(_c_M_avg.begin(), _c_M_avg.end()), 0.0);
+    // double min_M     = std::max(*std::min_element(_c_M_avg.begin(), _c_M_avg.end()), 0.0);
 
     double average_PI_final    = _c_PI_avg[_c_PI_avg.size()-1];
     double average_PIdot_final = _c_PIdot_avg[_c_PIdot_avg.size()-1]; 
@@ -1605,12 +1605,30 @@ void Voxel::simulate(int method, int save_voxel){
     double average_M_final     = _c_M_avg[_c_M_avg.size()-1];
 
     // compute weighted multi objective function
-    // _obj = 0.1 * average_PI + 0.25 * average_PIdot + 0.25 * average_Mdot + 0.4 * average_M;
-    double obj_PI    = std::max((average_PI_final - min_PI)       / (max_PI - min_PI)      , 0.0);
-    double obj_PIdot = std::max((average_PIdot_final - min_PIdot) / (max_PIdot - min_PIdot), 0.0);
-    double obj_Mdot  = std::max((average_Mdot_final - min_Mdot)   / (max_Mdot - min_Mdot)  , 0.0);
-    double obj_M     = std::max((average_M_final - min_M)         / (max_M - min_M)        , 0.0);
-    _obj = 0.1 * obj_PI + 0.25 * obj_PIdot + 0.25 * obj_Mdot + 0.4 * obj_M;
+    _obj_PI      = std::max(average_PI_final    / max_PI   , 0.0);
+    _obj_PIdot   = std::max(average_PIdot_final / max_PIdot, 0.0);
+    _obj_Mdot    = std::max(average_Mdot_final  / max_Mdot , 0.0);
+    _obj_M       = std::max(average_M_final     / max_M    , 0.0);
+    _obj_default = w[0]*_obj_PI + w[1]*_obj_PIdot + w[2]*_obj_Mdot + w[3]*_obj_M;
+    
+    // switch _obj to match input obj_fn
+    switch (obj_fn){
+        case 1:
+            _obj = _obj_PI;
+            break;
+        case 2:
+            _obj = _obj_PIdot;
+            break;
+        case 3:
+            _obj = _obj_Mdot;
+            break;
+        case 4:
+            _obj = _obj_M;
+            break;
+        default:
+            _obj = _obj_default;
+            break;
+    }
 
     if (!_multi_thread){
         std::cout << "==================================" << std::endl;
@@ -1624,6 +1642,22 @@ void Voxel::simulate(int method, int save_voxel){
         std::cout << "_vp:  " << _vp                      << std::endl;
         std::cout << "==================================" << std::endl;
     }
+}
+
+double Voxel::getObjPI() {
+    return _obj_PI;
+}
+
+double Voxel::getObjPIDot() {
+    return _obj_PIdot;
+}
+
+double Voxel::getObjMDot() {
+    return _obj_Mdot;
+}
+
+double Voxel::getObjM() {
+    return _obj_M;
 }
 
 double Voxel::getObjective() {

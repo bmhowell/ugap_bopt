@@ -31,13 +31,26 @@ typedef struct gen_alg_params {
 
 // input/output BOpt data structure
 typedef struct bopt {
-    float temp;    // temperature
-    float rp;      // particle radius
-    float vp;      // volume fraction
-    float uvi;     // initial UV intensity
-    float uvt;     // uv exposure time
-    float obj;     // objective
+    float temp;         // temperature
+    float rp;           // particle radius
+    float vp;           // volume fraction
+    float uvi;          // initial UV intensity
+    float uvt;          // uv exposure time
+    float obj_pi;       // obj fn 1
+    float obj_pidot;    // obj fn 2
+    float obj_mdot;     // obj fn 3
+    float obj_m;        // obj fn 4
+    float obj;          // multi obj fn
 } bopt;
+
+// objective function values
+typedef struct obj_fns {
+    float obj_pi;
+    float obj_pidot;
+    float obj_mdot;
+    float obj_m;
+    float obj;
+} obj_fns;
 
 // input constraints
 typedef struct constraints {

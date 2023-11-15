@@ -215,7 +215,7 @@ void BayesianOpt::qLCB(int iter) {
     *_x_smpl     = (*_x_smpl)(inds_s, Eigen::all);
 }
 
-void BayesianOpt::evaluate_samples() {
+void BayesianOpt::evaluate_samples(int obj_fn) {
     // evaluate top candidates
     _num_evals = omp_get_num_procs();
     std::vector<bopt> voxels_evals;
@@ -230,6 +230,9 @@ void BayesianOpt::evaluate_samples() {
         b.uvi  = _x_smpl->coeff(id, 3);
         b.uvt  = _x_smpl->coeff(id, 4);
 
+        // init guess weights for multi-obj fn
+        double default_weights[4] = {0.1, 0.25, 0.25, 0.4};
+
         // perform simulation with top candidates
         Voxel voxel_sim(_s.tfinal,
                         _s.dt,
@@ -243,8 +246,14 @@ void BayesianOpt::evaluate_samples() {
 
         voxel_sim.computeParticles(b.rp,
                                    b.vp);
-        voxel_sim.simulate(_s.method, _s.save_voxel);
-        b.obj = voxel_sim.getObjective();
+        voxel_sim.simulate(_s.method, _s.save_voxel, obj_fn, default_weights);
+
+        b.obj_pi    = voxel_sim.getObjPI();
+        b.obj_pidot = voxel_sim.getObjPIDot();
+        b.obj_mdot  = voxel_sim.getObjMDot();
+        b.obj_m     = voxel_sim.getObjM();
+
+        b.obj       = voxel_sim.getObjective();
         
         #pragma omp critical
         {
@@ -252,23 +261,27 @@ void BayesianOpt::evaluate_samples() {
             if (!std::isnan(b.obj)) {
                 voxels_evals.push_back(b);
                 _cost.push_back(b.obj);
+                std::cout << "Thread " << thread_id << std::endl;
+                std::cout << " | b.obj:   "  << b.obj       << std::endl
+                          << " | b.pi:    "  << b.obj_pi    << std::endl
+                          << " | b.pidot: "  << b.obj_pidot << std::endl
+                          << " | b.mdot:  "  << b.obj_mdot  << std::endl
+                          << " | b.m:     "  << b.obj_m     << std::endl
+                          << " | b.temp:  "  << b.temp      << std::endl
+                          << " | b.rp:    "  << b.rp        << std::endl
+                          << " | b.vp:    "  << b.vp        << std::endl
+                          << " | b.uvi:   "  << b.uvi       << std::endl
+                          << " | b.uvt:   "  << b.uvt       << std::endl;
+                std::cout << "-------------------\n" << std::endl;
             } else {
-                std::cout << "\nWARNING: nan detected\n" << std::endl;
+                std::cout << "\nWARNING: NaN detected\n" << std::endl;
+                std::cout << "Thread " << thread_id << std::endl;
+                std::cout << "-------------------\n" << std::endl;
             }
-            std::cout << "Thread " << thread_id << std::endl;
-            std::cout << " | b.obj: " << b.obj 
-                      << " | b.temp: "<< b.temp
-                      << " | b.rp: "  << b.rp
-                      << " | b.vp: "  << b.vp
-                      << " | b.uvi: " << b.uvi
-                      << " | b.uvt: " << b.uvt << std::endl;
-            std::cout << "-------------------\n" << std::endl; 
         }
     }
 
     std::cout << "--- finished new evaluations ---" << std::endl;
-
-    
 
     // sort cost
     std::sort(_cost.begin(), _cost.end());
@@ -294,19 +307,27 @@ void BayesianOpt::evaluate_samples() {
         }
     }
 
-    // store parameters over time
+    // store GP parameters over time
     _tot_length.push_back(_model.get_length_param());
     _tot_sigma.push_back(_model.get_sigma_param());
     _tot_noise.push_back(_model.get_noise_param());
     
+    // store best candidates over time
     _tot_temp.push_back(_bopti[ind].temp);
     _tot_rp.push_back(_bopti[ind].rp);
     _tot_vp.push_back(_bopti[ind].vp);
     _tot_uvi.push_back(_bopti[ind].uvi);
     _tot_uvt.push_back(_bopti[ind].uvt);
+
+    // store each cost associated with best obj
+    _top_obj_pi.push_back(_bopti[ind].obj_pi);
+    _top_obj_pidot.push_back(_bopti[ind].obj_pidot);
+    _top_obj_mdot.push_back(_bopti[ind].obj_mdot);
+    _top_obj_m.push_back(_bopti[ind].obj_m);
+
 }
 
-void BayesianOpt::optimize() {
+void BayesianOpt::optimize(int obj_fn) {
     std::cout << "\n===== OPTIMIZING =====" << std::endl;
     // step 1: uniformly sample domain from gaussian process
     this->sample_posterior();
@@ -315,7 +336,7 @@ void BayesianOpt::optimize() {
     this->qLCB(0);
     
     // evaluate top candidates
-    this->evaluate_samples();
+    this->evaluate_samples(obj_fn);
 
     // run loop
     for (int iter = 1; iter < 10; ++iter) {
@@ -330,11 +351,10 @@ void BayesianOpt::optimize() {
         this->sample_posterior();
 
         // compute confidence bound
-        // this->qLCB(_x_train->rows());
         this->qLCB(iter);
 
         // evaluate top candidates
-        this->evaluate_samples();
+        this->evaluate_samples(obj_fn);
 
         // print current best costs
         std::cout << "\ncurrent best costs: " << std::endl;
@@ -353,18 +373,6 @@ void BayesianOpt::optimize() {
     this->store_tot_data(_bopti, _bopti.size());
     this->save_cost();
     this->sort_data();
-
-    std::cout << "Final best values: " << std::endl;
-    for (int i = 0; i < 5; ++i) {
-        std::cout << " | b.obj: " << _cost[i] << "\n"
-                  << " | b.temp: "<< _x_train->coeff(i, 0) << "\n"
-                  << " | b.rp: "  << _x_train->coeff(i, 1) << "\n"
-                  << " | b.vp: "  << _x_train->coeff(i, 2) << "\n"
-                  << " | b.uvi: " << _x_train->coeff(i, 3) << "\n"
-                  << " | b.uvt: " << _x_train->coeff(i, 4) << "\n"
-                  << std::endl;
-    }
-
 }
 
 // PRIVATE MEMBER FUNCTIONS
@@ -498,15 +506,19 @@ void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
     std::cout << "\n--- storing data ---\n" << std::endl;
     std::ofstream my_file;
     my_file.open(_file_path + "/tot_bopt.txt");
-    my_file << "temp, rp, vp, uvi, uvt, obj, tn" << std::endl;
+    my_file << "temp, rp, vp, uvi, uvt, obj_pi, obj_pidot, obj_mdot, obj_m, obj, tn" << std::endl;
 
     for (int id = 0; id < num_sims; ++id) {
-        my_file << bopti[id].temp << ", "
-                << bopti[id].rp   << ", "
-                << bopti[id].vp   << ", "
-                << bopti[id].uvi  << ", "
-                << bopti[id].uvt  << ", "
-                << bopti[id].obj  << ", "
+        my_file << bopti[id].temp      << ", "
+                << bopti[id].rp        << ", "
+                << bopti[id].vp        << ", "
+                << bopti[id].uvi       << ", "
+                << bopti[id].uvt       << ", "
+                << bopti[id].obj_pi    << ", "
+                << bopti[id].obj_pidot << ", "
+                << bopti[id].obj_mdot  << ", "
+                << bopti[id].obj_m     << ", "
+                << bopti[id].obj       << ", "
                 << _s.time_stepping << std::endl;
     }
     my_file.close();
@@ -514,32 +526,42 @@ void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
 
 void BayesianOpt::save_cost() {
     std::ofstream my_file;
-    // my_file.open(_file_path + "/bopt_cost.txt");
-    // my_file << "iter, avg_obj, top_obj, avg_top_obj" << std::endl;
-
-    // for (int id = 0; id < _avg_obj.size(); ++id) {
-    //     my_file << id << ", "
-    //             << _avg_obj[id] << ", "
-    //             << _top_obj[id] << ", "
-    //             << _avg_top_obj[id] << std::endl;
-    // }
-    // my_file.close();
 
     // save best params over each iteration
     my_file.open(_file_path + "/bopt_params.txt");
-    my_file << "length, sigma, noise, temp, rp, vp, uvi, uvt, avg_obj, avg_top_obj, top_obj" << std::endl;
+    my_file << "length, " 
+            << "sigma, "
+            << "noise, "
+            << "temp, "
+            << "rp, "
+            << "vp, "
+            << "uvi, "
+            << "uvt, "
+            << "avg_obj, "
+            << "avg_top_obj, "
+            << "top_obj, "
+            << "top_obj_pi, "
+            << "top_obj_pidot, "
+            << "top_obj_mdot, "
+            << "top_obj_m" 
+            << std::endl;
     for (int ind = 0; ind < _tot_length.size(); ++ind) {
-        my_file << _tot_length[ind] << ", "
-                << _tot_sigma[ind]  << ", "
-                << _tot_noise[ind]  << ", "
-                << _tot_temp[ind]   << ", "
-                << _tot_rp[ind]     << ", "
-                << _tot_vp[ind]     << ", "
-                << _tot_uvi[ind]    << ", "
-                << _tot_uvt[ind]    << ", "
-                << _avg_obj[ind] << ", "
-                << _avg_top_obj[ind] << ", "
-                << _top_obj[ind] << std::endl;
+        my_file << _tot_length[ind]     << ", "
+                << _tot_sigma[ind]      << ", "
+                << _tot_noise[ind]      << ", "
+                << _tot_temp[ind]       << ", "
+                << _tot_rp[ind]         << ", "
+                << _tot_vp[ind]         << ", "
+                << _tot_uvi[ind]        << ", "
+                << _tot_uvt[ind]        << ", "
+                << _avg_obj[ind]        << ", "
+                << _avg_top_obj[ind]    << ", "
+                << _top_obj[ind]        << ", "
+                << _top_obj_pi[ind]     << ", "
+                << _top_obj_pidot[ind]  << ", "
+                << _top_obj_mdot[ind]   << ", "
+                << _top_obj_m[ind]
+                << std::endl;
     }
     my_file.close();
 }
@@ -559,6 +581,17 @@ void BayesianOpt::sort_data() {
     // concatenate data for saving
     Eigen::MatrixXd tot_data(_x_train->rows(), _x_train->cols()+1);
     tot_data << (*_x_train)(inds_s, Eigen::all), (*_y_train)(inds_s);
+
+    std::cout << "Final best values: " << std::endl;
+    for (int i = 0; i < 5; ++i) {
+        std::cout << " | b.obj:  " << tot_data.coeff(i, 5) << "\n"
+                  << " | b.temp: " << tot_data.coeff(i, 0) << "\n"
+                  << " | b.rp:   " << tot_data.coeff(i, 1) << "\n"
+                  << " | b.vp:   " << tot_data.coeff(i, 2) << "\n"
+                  << " | b.uvi:  " << tot_data.coeff(i, 3) << "\n"
+                  << " | b.uvt:  " << tot_data.coeff(i, 4) << "\n"
+                  << std::endl;
+    }
 
     // save data
     std::ofstream my_file;

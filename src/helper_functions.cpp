@@ -9,14 +9,15 @@
 
 
 // Generate data
-double gen_data(float tfinal,
+obj_fns gen_data(float tfinal,
                 double dt,
                 int node,
                 int idsim,
                 bopt &bopti,
                 sim &simi,
                 std::string file_path,
-                bool multi_thread) {
+                bool multi_thread, 
+                int obj_fn) {
     // print info (if not multi-threading)
 
     if (!multi_thread) {
@@ -47,7 +48,9 @@ double gen_data(float tfinal,
         VoxelSystem1.density2File();
     }
 
-    VoxelSystem1.simulate(simi.method, simi.save_voxel);
+    double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
+
+    VoxelSystem1.simulate(simi.method, simi.save_voxel, obj_fn, default_weights);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto t = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -64,7 +67,15 @@ double gen_data(float tfinal,
     } else {
         std::cout << "---sim " << idsim << " complete ----" << std::endl;
     }
-    return VoxelSystem1.getObjective();
+
+    obj_fns objectives;
+    objectives.obj_pi    = VoxelSystem1.getObjPI();
+    objectives.obj_pidot = VoxelSystem1.getObjPIDot();
+    objectives.obj_mdot  = VoxelSystem1.getObjMDot();
+    objectives.obj_m     = VoxelSystem1.getObjM();
+    objectives.obj       = VoxelSystem1.getObjective();
+
+    return objectives;
 }
 
 // initialize input variables
@@ -73,7 +84,8 @@ void bootstrap(sim &sim_settings,
                std::vector<bopt> &bopti,
                int num_sims,
                std::string file_path,
-               bool multi_thread) {
+               bool multi_thread, 
+               int obj_fn) {
     // generate random values
 
     if (multi_thread) {
@@ -105,29 +117,48 @@ void bootstrap(sim &sim_settings,
                    +  c.min_uvt;
 
             // peform simulation with randomly generatored values
-            b.obj = gen_data(sim_settings.tfinal,
+            obj_fns objectives;
+            objectives = gen_data(sim_settings.tfinal,
                              sim_settings.dt,
                              sim_settings.node,
                              id,
                              b,
                              sim_settings,
                              file_path,
-                             true);
+                             true, 
+                             obj_fn);
+            
+            // store objective values in bopt
+            b.obj_pi    = objectives.obj_pi;
+            b.obj_pidot = objectives.obj_pidot;
+            b.obj_mdot  = objectives.obj_mdot;
+            b.obj_m     = objectives.obj_m;
+            b.obj       = objectives.obj;
 
             // // write individual data to file (prevent accidental loss of data)
             // write_to_file(b, sim_settings, id, file_path);
             #pragma omp critical
-            {
+            {   
                 int thread_id = omp_get_thread_num();
-                bopti.push_back(b);
-                std::cout << "Thread " << thread_id << std::endl;
-                std::cout << " | b.obj: " << b.obj 
-                          << " | b.temp: "<< b.temp
-                          << " | b.rp: "  << b.rp
-                          << " | b.vp: "  << b.vp
-                          << " | b.uvi: " << b.uvi
-                          << " | b.uvt: " << b.uvt << std::endl;
-                std::cout << "-------------------\n" << std::endl; 
+                if (!std::isnan(b.obj)) {
+                    bopti.push_back(b);
+                    std::cout << "Thread " << thread_id << std::endl;
+                    std::cout << " | b.obj:         "  << b.obj        << std::endl
+                            << " | b.obj_pi:      "  << b.obj_pi     << std::endl
+                            << " | b.obj_pidot:   "  << b.obj_m      << std::endl
+                            << " | b.obj_mdot:    "  << b.obj_mdot   << std::endl
+                            << " | b.obj_m:       "  << b.obj_m      << std::endl
+                            << " | b.temp:        "  << b.temp       << std::endl
+                            << " | b.rp:          "  << b.rp         << std::endl
+                            << " | b.vp:          "  << b.vp         << std::endl
+                            << " | b.uvi:         "  << b.uvi        << std::endl
+                            << " | b.uvt:         "  << b.uvt        << std::endl;
+                    std::cout << "-------------------\n" << std::endl; 
+                } else {
+                    std::cout << "\nWARNING: NaN value detected" << std::endl;
+                    std::cout << "thread: " << thread_id << std::endl;
+                    
+                }
             }
         }
     } else {
@@ -149,16 +180,36 @@ void bootstrap(sim &sim_settings,
                    +  c.min_uvt;
 
             // peform simulation with randomly generatored values
-            b.obj = gen_data(sim_settings.tfinal,
+            obj_fns objectives;
+            objectives = gen_data(sim_settings.tfinal,
                              sim_settings.dt,
                              sim_settings.node,
                              id,
                              b,
                              sim_settings,
                              file_path,
-                             false);
-            std::cout << "b.obj: " << b.obj << std::endl;
-            std::cout << "---  ------- ---\n" << std::endl;
+                             false, 
+                             obj_fn);
+            
+            // store objective values in bopt
+            b.obj_pi    = objectives.obj_pi;
+            b.obj_pidot = objectives.obj_pidot;
+            b.obj_mdot  = objectives.obj_mdot;
+            b.obj_m     = objectives.obj_m;
+            b.obj       = objectives.obj;
+
+            std::cout << "-------------------\n" << std::endl; 
+            std::cout << " | b.obj:         "  << b.obj 
+                        << " | b.obj_pi:      "  << b.obj_pi
+                        << " | b.obj_pidot:   "  << b.obj_m
+                        << " | b.obj_mdot:    "  << b.obj_mdot
+                        << " | b.obj_m:       "  << b.obj_m
+                        << " | b.temp:        "  << b.temp
+                        << " | b.rp:          "  << b.rp
+                        << " | b.vp:          "  << b.vp
+                        << " | b.uvi:         "  << b.uvi
+                        << " | b.uvt:         "  << b.uvt << std::endl;
+            std::cout << "-------------------\n" << std::endl; 
 
             // // write individual data to file (prevent accidental loss of data)
             // write_to_file(b, sim_settings, id, file_path);
@@ -205,7 +256,7 @@ void store_tot_data(std::vector<bopt> &bopti,
 
 int  read_data(std::vector<bopt> &bopti,
                std::string file_path) {
-    std::ifstream file(file_path + "/tot_bopt.dat");
+    std::ifstream file(file_path + "/tot_bopt.txt");
 
     std::string line;
     std::getline(file, line);  // skip first line
