@@ -503,24 +503,42 @@ void BayesianOpt::gen_test_points(Eigen::MatrixXd &x_smpl) {
 }
 
 void BayesianOpt::store_tot_data(std::vector<bopt> &bopti, int num_sims) {
+    // convert bopti to Eigen matrix, sort according to _obj and save matrix
+    Eigen::MatrixXd output;
+    output.resize(num_sims, 10);
+    for (int id = 0; id < num_sims; ++id) {
+        output(id, 0) = bopti[id].temp;
+        output(id, 1) = bopti[id].rp;
+        output(id, 2) = bopti[id].vp;
+        output(id, 3) = bopti[id].uvi;
+        output(id, 4) = bopti[id].uvt;
+        output(id, 5) = bopti[id].obj_pi;
+        output(id, 6) = bopti[id].obj_pidot;
+        output(id, 7) = bopti[id].obj_mdot;
+        output(id, 8) = bopti[id].obj_m;
+        output(id, 9) = bopti[id].obj;
+    }
+
+    // // sort rows of matrix according to last column
+    // Eigen::VectorXi inds_s;
+    // inds_s = Eigen::VectorXi::LinSpaced(num_sims,
+    //                                     0,
+    //                                     num_sims - 1);
+    // std::sort(inds_s.data(), inds_s.data() + inds_s.size(),
+    //         [&output](int a, int b) {
+    //             std::cout << "output(a, 9): " << output(a, 9) << " | output(b, 9): " << output(b, 9) << std::endl;
+    //             return output(a, 9) < output(b, 9);
+    //             });
+
+    // // sort matrix
+    // output = output(inds_s, Eigen::all);
+
+    
     std::cout << "\n--- storing data ---\n" << std::endl;
     std::ofstream my_file;
     my_file.open(_file_path + "/tot_bopt.txt");
-    my_file << "temp, rp, vp, uvi, uvt, obj_pi, obj_pidot, obj_mdot, obj_m, obj, tn" << std::endl;
-
-    for (int id = 0; id < num_sims; ++id) {
-        my_file << bopti[id].temp      << ", "
-                << bopti[id].rp        << ", "
-                << bopti[id].vp        << ", "
-                << bopti[id].uvi       << ", "
-                << bopti[id].uvt       << ", "
-                << bopti[id].obj_pi    << ", "
-                << bopti[id].obj_pidot << ", "
-                << bopti[id].obj_mdot  << ", "
-                << bopti[id].obj_m     << ", "
-                << bopti[id].obj       << ", "
-                << _s.time_stepping << std::endl;
-    }
+    my_file << "temp, rp, vp, uvi, uvt, obj_pi, obj_pidot, obj_mdot, obj_m, obj" << std::endl;
+    my_file << output.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n"));
     my_file.close();
 }
 
