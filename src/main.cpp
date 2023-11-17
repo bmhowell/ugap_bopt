@@ -20,16 +20,16 @@ int main(int argc, char** argv) {
     s.update_time_stepping_values();
 
     // 1: PI, 2: PIdot, 3: Mdot, 4: M, 5: total
-    int obj_fn = 4;
+    int obj_fn = 5;
 
     // MACBOOK PRO
     std::string file_path;
-    // file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
-    //            + std::to_string(s.time_stepping);
+    file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
+               + std::to_string(s.time_stepping);
 
     // LINUX CENTRAL COMPUTING
-    file_path = "/home/brian/Documents/brian/ugap_opt/output_"
-                + std::to_string(s.time_stepping);
+    // file_path = "/home/brian/Documents/brian/ugap_opt/output_"
+    //             + std::to_string(s.time_stepping);
 
     std::cout << "\n--- INITIALIZING OPT. FRAMEWORK ---" << std::endl;
     std::cout << "saving to: " << file_path << std::endl;

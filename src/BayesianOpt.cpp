@@ -232,7 +232,7 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
 
         // init guess weights for multi-obj fn
         double default_weights[4] = {0.1, 0.25, 0.25, 0.4};
-
+        double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
         // perform simulation with top candidates
         Voxel voxel_sim(_s.tfinal,
                         _s.dt,
@@ -246,7 +246,7 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
 
         voxel_sim.computeParticles(b.rp,
                                    b.vp);
-        voxel_sim.simulate(_s.method, _s.save_voxel, obj_fn, default_weights);
+        voxel_sim.simulate(_s.method, _s.save_voxel, obj_fn, pareto_weights);
 
         b.obj_pi    = voxel_sim.getObjPI();
         b.obj_pidot = voxel_sim.getObjPIDot();
