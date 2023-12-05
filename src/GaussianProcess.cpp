@@ -16,6 +16,7 @@ GaussianProcess::GaussianProcess() {
     _l   = 1.0;
     _sf  = 0.76;
     _sn  = 0.000888;
+    _p   = 1.0;
     _lml = -1000.0;
 
     _file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output";
@@ -52,11 +53,11 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     this->gen_tune_param();
 
     // compute _lml, _alpha and _L
-    double lml_ = this->compute_lml(_l, _sf, _sn);
+    double lml_ = this->compute_lml(_l, _sf, _sn, _p);
     if (!std::isnan(lml_)) { _lml = lml_; } else { _lml = -1000.0; }
 
     // compute covariance matrix
-    this->kernelGP(_x_train, _x_train, _l, _sf);
+    this->kernelGP(_x_train, _x_train, _l, _sf, _p);
     _Ky = _Cov; 
 
     // add noise to covariance matrix
@@ -74,6 +75,7 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN){
     std::cout << "    final length: "     << _l << std::endl;
     std::cout << "    final sigma:  "     << _sf << std::endl;
     std::cout << "    final noise:  "     << _sn << std::endl;
+    std::cout << "    final period: "     << _p << std::endl;
 }
 
 void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
@@ -89,9 +91,10 @@ void GaussianProcess::train(Eigen::MatrixXd& X_TRAIN, Eigen::VectorXd& Y_TRAIN,
     _l = model_param[0];
     _sf = model_param[1];
     _sn = model_param[2];
+    _p  = model_param[3];
     
     // compute _lml, _alpha and _L
-    _lml = compute_lml(_l, _sf, _sn);
+    _lml = compute_lml(_l, _sf, _sn, _p);
 
     // auto end = std::chrono::high_resolution_clock::now();
     // auto duration = (std::chrono::duration_cast<std::chrono::microseconds>(end - start)).count() / 1e6;
@@ -112,7 +115,7 @@ double GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL)
 
     this->scale_data(X_VAL, Y_VAL, true);
     // compute covariance matrix
-    kernelGP(_x_train, _x_train, _l, _sf);
+    kernelGP(_x_train, _x_train, _l, _sf, _p);
     _Ky          = _Cov; 
     // add noise to covariance matrix
     for (int i = 0; i < _x_train.rows(); i++){
@@ -133,7 +136,7 @@ double GaussianProcess::validate(Eigen::MatrixXd& X_VAL, Eigen::VectorXd& Y_VAL)
     Eigen::MatrixXd Ks(_x_train.rows(), _x_val.rows());          // ∈ ℝ (m x _l)
     Eigen::MatrixXd Kss(_x_val.rows(), _x_val.rows());           // ∈ ℝ (_l x _l))
 
-    kernelGP(_x_train, _x_val, _l, _sf);
+    kernelGP(_x_train, _x_val, _l, _sf, _p);
     Ks = _Cov;
     Eigen::VectorXd y_val_out = Ks.transpose() * _alpha;                             // eq. 2.25
 
@@ -159,14 +162,14 @@ void GaussianProcess::predict(Eigen::MatrixXd& X_TEST, bool compute_std){
     Eigen::MatrixXd Kss(_x_test.rows(), _x_test.rows());          // ∈ ℝ (_l x _l))
 
     // compute mean _y_test ∈ ℝ (_l x m) -> see Algorithm 2.1 in Rasmussen & Williams
-    kernelGP(_x_train, _x_test, _l, _sf);
+    kernelGP(_x_train, _x_test, _l, _sf, _p);
     Ks = _Cov;
     _y_test = Ks.transpose() * _alpha;                                  // eq. 2.25
     unscale_data(_y_test);
 
     if (compute_std){
         // compute variance: _V  ∈ ℝ (_l x _l)
-        kernelGP(_x_test,  _x_test, _l, _sf);
+        kernelGP(_x_test,  _x_test, _l, _sf, _p);
         Kss = _Cov;
         _V = _L.triangularView<Eigen::Lower>().solve(Ks); 
         _Cov = Kss - _V.transpose() * _V;   
@@ -233,7 +236,8 @@ double GaussianProcess::get_noise_param(){
 
 // PRIVATE MEMBER FUNCTIONS
 /* infrastructure functions */
-void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& length, double& sigma){
+void GaussianProcess::kernelGP(Eigen::MatrixXd &X, Eigen::MatrixXd &Y, 
+                               double &length, double &sigma, double &p){
     if (_kernel == "RBF"){
         if (X.rows() != Y.rows()){
             
@@ -256,8 +260,37 @@ void GaussianProcess::kernelGP(Eigen::MatrixXd& X, Eigen::MatrixXd& Y, double& l
                 }
             }
         }
+    } else if (_kernel == "LOC_PER") {
+
+        double l_inv     = 1. / (length * length);
+        double p_inv     = 1. / p;
+        if (X.rows() != Y.rows()){
+            
+            // kernel construction algorithm for non-symmetric matrices
+            _Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = 0; j < Y.rows(); j++){
+                    // eq 2.31 in Rasmussen & Williams
+                    double sqrd_exp = sigma * 0.5 * exp( -(X.row(i) - Y.row(j)).squaredNorm() * l_inv );
+                    double periodic = exp( -2.0 * l_inv * (M_PI * (X.row(i) - Y.row(j)) * p_inv).array().sin().square().sum() );
+                    _Cov(i, j) = sqrd_exp * periodic;
+                }
+            }
+        } else{
+            // kernel construction algorithm for symmetric matrices
+            _Cov = Eigen::MatrixXd::Zero(X.rows(), Y.rows());
+            for (int i = 0; i < X.rows(); i++){
+                for (int j = i; j < Y.rows(); j++){
+                    // eq 2.31 in Rasmussen & Williams
+                    double sqrd_exp = sigma * 0.5 * exp( -(X.row(i) - Y.row(j)).squaredNorm() * l_inv );
+                    double periodic = exp( -2.0 * l_inv * (M_PI * (X.row(i) - Y.row(j)) * p_inv).array().sin().square().sum() );
+                    _Cov(i, j) = sqrd_exp * periodic;
+                    _Cov(j, i) = _Cov(i, j);
+                }
+            }
+        }
     } else{
-        std::cout << "Kernel Error: choose appropriate kernel --> {RBF, }" << std::endl;
+        std::cout << "Kernel Error: choose appropriate kernel --> {RBF, LOC_PER}" << std::endl;
     }
 
 }
@@ -290,7 +323,7 @@ void GaussianProcess::scale_data(Eigen::MatrixXd& X, Eigen::VectorXd& Y){
 
 }
 
-void GaussianProcess::scale_data(Eigen::MatrixXd& X_TEST) {
+void GaussianProcess::scale_data(Eigen::MatrixXd &X_TEST) {
     // Scale validation data using mean and standard deviation from training data
     _test_scaled = true; 
     _x_test = (X_TEST.rowwise() - _x_mean.transpose()).array().rowwise() / _x_std.transpose().array();
@@ -302,10 +335,10 @@ void GaussianProcess::unscale_data(Eigen::VectorXd& Y_TEST){
     _y_test = Y_TEST.array() * _y_std + _y_mean;
 }
 
-double GaussianProcess::compute_lml(double& length, double& sigma, double& noise){
+double GaussianProcess::compute_lml(double &length, double &sigma, double &noise, double &period){
     
     // compute covariance matrix
-    kernelGP(_x_train, _x_train, length, sigma);
+    kernelGP(_x_train, _x_train, length, sigma, period);
     _Ky = _Cov; 
 
     // add noise to covariance matrix
@@ -330,9 +363,9 @@ double GaussianProcess::compute_lml(double& length, double& sigma, double& noise
 }
 
 void GaussianProcess::sort_data(Eigen::MatrixXd& PARAM){
-    // Custom comparator for sorting by the fourth column in descending order
-    auto comparator = [](const Eigen::VectorXd& a, const Eigen::VectorXd& b) {
-        return a(3) > b(3);
+    // Custom comparator for sorting by the last column in descending order
+    auto comparator = [&PARAM](const Eigen::VectorXd& a, const Eigen::VectorXd& b) {
+        return a(PARAM.cols() - 1) > b(PARAM.cols() - 1);
     };
 
     // Convert Eigen matrix to std::vector of Eigen::VectorXd
@@ -355,13 +388,24 @@ void GaussianProcess::gen_tune_param(){
     double c_length[2] = {1e-2, 10.0};                              // length scale parameter bounds
     double c_sigma[2]  = {1e-2, 1.0};                               // signal noise variance bounds
     double c_noise[2]  = {1e-7, 1e-3};                              // noise variance bounds
+    double c_period[2] = {1e-2, 10.0};                              // period bounds
 
     int pop = 24;                                                   // population size
     int P   = 4;                                                    // number of parents
     int C   = 4;                                                    // number of children
     int G   = 100;                                                  // number of generations
     double lam_1, lam_2;                                            // genetic algorith paramters
-    Eigen::MatrixXd param(pop, 4);                                  // ∈ ℝ (population x param + obj)
+
+    Eigen::MatrixXd param;
+    if (_kernel == "RBF") {
+        param = Eigen::MatrixXd(pop, 4);                             // ∈ ℝ (population x param + obj)
+    } else if (_kernel == "LOC_PER") {
+        param = Eigen::MatrixXd(pop, 5);                             // ∈ ℝ (population x param + obj)
+    } else {
+        Eigen::MatrixXd param(pop, 4);                              // ∈ ℝ (population x param + obj)
+        throw std::invalid_argument("Error: choose appropriate kernel --> {RBF, LOC_PER}");
+        return;
+    }
 
     // initialize input variables
     std::random_device rd;                                          // Obtain a random seed from the hardware
@@ -372,10 +416,13 @@ void GaussianProcess::gen_tune_param(){
     param(0, 0) = _l;
     param(0, 1) = _sf;
     param(0, 2) = _sn;
+    if (_kernel == "LOC_PER") { param(0, 3) = _p; }
+    
     for (int i = 1; i < param.rows(); ++i){
         param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
         param(i, 1) = c_sigma[0]  + (c_sigma[1]  - c_sigma[0])  * distribution(gen);
         param(i, 2) = c_noise[0]  + (c_noise[1]  - c_noise[0])  * distribution(gen);
+        if (_kernel == "LOC_PER") { param(i, 3) = c_period[0] + (c_period[1] - c_period[0]) * distribution(gen); }
     }
 
     // loop over generations
@@ -388,24 +435,31 @@ void GaussianProcess::gen_tune_param(){
     double lml_output;
 
     for (int g = 0; g < G; ++g){
-        
-        // std::cout << "generation: " << g << std::endl;
 
         // loop over population
         for (int i = 0; i < pop; ++i){
             // compute negative log-likelihood
-            lml_output  = this->compute_lml(param(i, 0), param(i, 1), param(i, 2));
-            if (!std::isnan(lml_output)) {
-                param(i, 3) = lml_output;
+            if (_kernel == "RBF") {
+                lml_output  = this->compute_lml(param(i, 0), param(i, 1), param(i, 2), _p);
+            } else if (_kernel == "LOC_PER") {
+                lml_output  = this->compute_lml(param(i, 0), param(i, 1), param(i, 2), param(i, 3));
             } else {
-                param(i, 3) = -1000.0;
+                throw std::invalid_argument("Error: choose appropriate kernel --> {RBF, LOC_PER}");
+                return;
+            }
+
+            // check for nan
+            if (!std::isnan(lml_output)) {
+                param(i, param.cols()-1) = lml_output;
+            } else {
+                param(i, param.cols()-1) = -1000.0;
             }
         }
 
         this->sort_data(param);
 
         // track top and average performers
-        top_performer.push_back(param(0, 3));
+        top_performer.push_back(param(0, param.cols() - 1));
         avg_parent.push_back(param.col(param.cols() - 1).head(P).mean());
         avg_total.push_back(param.col(param.cols() - 1).mean());
 
@@ -423,6 +477,7 @@ void GaussianProcess::gen_tune_param(){
                 param(i, 0) = c_length[0] + (c_length[1] - c_length[0]) * distribution(gen);
                 param(i, 1) = c_sigma[0]  + (c_sigma[1]  -  c_sigma[0]) * distribution(gen);
                 param(i, 2) = c_noise[0]  + (c_noise[1]  -  c_noise[0]) * distribution(gen);
+                if (_kernel == "LOC_PER") { param(i, 3) = c_period[0] + (c_period[1] - c_period[0]) * distribution(gen); }
             }
         }
     }
@@ -435,13 +490,13 @@ void GaussianProcess::gen_tune_param(){
     // store_cost.open(_file_path        + "/cost.txt");
 
     // write to file
-    store_params      << "length, sigma, noise"                 << std::endl;
+    store_params      << "length, sigma, noise, period"                 << std::endl;
     store_performance << "top_performer, avg_parent, avg_total" << std::endl;
     // store_cost        << "cost"                                 << std::endl;
     for (int i = 0; i < top_performer.size(); ++i){
         store_performance << top_performer[i] << "," << avg_parent[i] << "," << avg_total[i] << std::endl;
         if (i < param.rows()){
-            store_params << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << std::endl;
+            store_params << param(i, 0) << "," << param(i, 1) << "," << param(i, 2) << "," << param(i, 3) << std::endl;
         }
         // if (i < cost.size()){
         //     store_cost << cost[i] << "," << std::endl;
@@ -452,8 +507,21 @@ void GaussianProcess::gen_tune_param(){
     // store_cost.close();
 
     // save best parameters to object
-    _l    = param(0, 0);  // length scale
-    _sf   = param(0, 1);  // signal noise variance
-    _sn   = param(0, 2);  // noise variance
-    _lml  = param(0, 3);  // negative log-likelihood
+    if (_kernel == "RBF") {
+        _l    = param(0, 0);  // length scale
+        _sf   = param(0, 1);  // signal noise variance
+        _sn   = param(0, 2);  // noise variance
+        _lml  = param(0, 3);  // negative log-likelihood
+
+    } else if (_kernel == "LOC_PER") {
+        _l    = param(0, 0);  // length scale
+        _sf   = param(0, 1);  // signal noise variance
+        _sn   = param(0, 2);  // noise variance
+        _p    = param(0, 3);  // period
+        _lml  = param(0, 4);  // negative log-likelihood
+    } else {
+        throw std::invalid_argument("Error: choose appropriate kernel --> {RBF, LOC_PER}");
+        return;
+    }
+
 }

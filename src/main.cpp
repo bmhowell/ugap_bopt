@@ -57,7 +57,8 @@ int main(int argc, char** argv) {
     const bool val  = false;         // validation toggle
 
     // initialize function approximator
-    GaussianProcess model = GaussianProcess("RBF", file_path);
+    // GaussianProcess model = GaussianProcess("RBF", file_path);
+    GaussianProcess model = GaussianProcess("LOC_PER", file_path);
 
     // load model, n opt vars, constraints, settings, and file path into optimizer
     BayesianOpt optimizer(model, n_dim, c, s, file_path);

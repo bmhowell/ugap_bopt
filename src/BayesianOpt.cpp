@@ -193,8 +193,8 @@ void BayesianOpt::sample_posterior() {
 }
 
 void BayesianOpt::qLCB(int iter) {
-    // double beta = exp_decay_schdl(iter);
-    double beta = inv_decay_schdl(iter);
+    double beta = exp_decay_schdl(iter);
+    // double beta = inv_decay_schdl(iter);
     std::cout << "beta: " << beta << std::endl;
     _conf_bound->array() = _y_sample_mean->array()
                          - beta * _y_sample_std->array();

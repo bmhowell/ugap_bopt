@@ -49,8 +49,9 @@ obj_fns gen_data(float tfinal,
     }
 
     double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
+    double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
 
-    VoxelSystem1.simulate(simi.method, simi.save_voxel, obj_fn, default_weights);
+    VoxelSystem1.simulate(simi.method, simi.save_voxel, obj_fn, pareto_weights);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto t = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
