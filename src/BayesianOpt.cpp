@@ -20,9 +20,6 @@ BayesianOpt::BayesianOpt() {
     // MACBOOK PRO
     _file_path = "/Users/brianhowell/Desktop/Berkeley/MSOL/ugap_opt/output_"
                 + std::to_string(_s.time_stepping);
-    // LINUX CENTRAL COMPUTING
-    // _file_path = "/home/brian/Documents/berkeley/ugap_opt/output_"
-    //             + std::to_string(_s.time_stepping);
 
     GaussianProcess _model = GaussianProcess("RBF", _file_path);
 
@@ -287,7 +284,6 @@ void BayesianOpt::evaluate_samples(int obj_fn, double wts[4]) {
     _top_obj.push_back(_cost[0]);
 
     // average top five performers and total performers
-
     _avg_top_obj.push_back(std::accumulate(_cost.begin(), _cost.begin() + 5, 0.0) / 5);
     _avg_obj.push_back(std::accumulate(_cost.begin(), _cost.end(), 0.0) / _cost.size());
 
@@ -309,6 +305,7 @@ void BayesianOpt::evaluate_samples(int obj_fn, double wts[4]) {
     _tot_sigma.push_back(_model.get_sigma_param());
     _tot_noise.push_back(_model.get_noise_param());
     _tot_period.push_back(_model.get_period_param());
+    _tot_alpha.push_back(_model.get_alpha_param());
     
     // store best candidates over time
     _tot_temp.push_back(_bopti[ind].temp);
@@ -549,6 +546,7 @@ void BayesianOpt::save_cost() {
             << "sigma, "
             << "noise, "
             << "period, "
+            << "alpha, "
             << "temp, "
             << "rp, "
             << "vp, "
@@ -567,6 +565,7 @@ void BayesianOpt::save_cost() {
                 << _tot_sigma[ind]      << ", "
                 << _tot_noise[ind]      << ", "
                 << _tot_period[ind]     << ", "
+                << _tot_alpha[ind]      << ", "
                 << _tot_temp[ind]       << ", "
                 << _tot_rp[ind]         << ", "
                 << _tot_vp[ind]         << ", "
@@ -621,16 +620,10 @@ void BayesianOpt::sort_data() {
 }
 
 double BayesianOpt::inv_decay_schdl(int iter) {
-    // subtract of initial n data points
-    // iter -= _init_data_size;
-
     return std::sqrt(1.96 / (1.0 + iter));
 }
 
 double BayesianOpt::exp_decay_schdl(int iter) {
-    // subtract of initial n data points
-    // iter -= _init_data_size;
-
     return std::sqrt(1.96*std::exp(-iter));
 }
 

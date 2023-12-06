@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     s.time_stepping = 0;
     s.update_time_stepping_values();
 
+    // CHOOSE OBJECTIVE FUNCTION
     // 1: PI, 2: PIdot, 3: Mdot, 4: M, 5: total
     int obj_fn = 5;
     double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
@@ -56,8 +57,7 @@ int main(int argc, char** argv) {
     const int n_dim = 5;            // number of optimization variables
     const bool validate  = false;   // validation toggle
 
-    // initialize function approximator
-    // GaussianProcess model = GaussianProcess("RBF", file_path);
+    // initialize function approximator with kernel choice {"RBF", "RQK", "LOC_PER"}
     GaussianProcess model = GaussianProcess("LOC_PER", file_path);
 
     // load model, n opt vars, constraints, settings, and file path into optimizer

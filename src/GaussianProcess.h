@@ -48,12 +48,13 @@ private:
     double _error_val;                                     // ∈ ℝ         ⊂ validate()
     
     // learned parameters
-    double _l, _sf, _sn, _lml, _p;
+    double _l, _sf, _sn, _lml, _p, _a;
 
     // MEMBER FUNCTIONS
 
     void kernelGP(Eigen::MatrixXd &X, Eigen::MatrixXd &Y, 
-                  double &length, double &sigma, double &p);
+                  double &length, double &sigma, double &p,
+                  double &a);
     /*  description:
      *      kernel construction currently equipped with the following kernels:
      *          - radial basis function --> "RBF"
@@ -91,13 +92,19 @@ private:
     void unscale_data(Eigen::VectorXd &Y_TEST);
 
     /* model selection - compute negative log likelihood */
-    double compute_lml(double &length, double &sigma, double &noise, double &p);
+    double compute_lml(double &length, 
+                       double &sigma, 
+                       double &noise, 
+                       double &p,
+                       double &a);
     /* description:
         - choice of optimization method
         - model parameters: 
             - length scale: _l
             - signal variance: σ_f^2
             - noise parameter: σ_n^2
+            - LOC_PER - periodicity: p
+            - RQK - large/small length scale ratio: α
     */
 
     void sort_data(Eigen::MatrixXd &PARAM);
@@ -194,6 +201,8 @@ public:
     double get_noise_param();
 
     double get_period_param();
+
+    double get_alpha_param();
 };
 
 #endif // SRC_GAUSSIANPROCESS_H_

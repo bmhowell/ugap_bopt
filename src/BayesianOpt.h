@@ -91,6 +91,7 @@ private:
     std::vector<double> _tot_sigma;
     std::vector<double> _tot_noise;
     std::vector<double> _tot_period;
+    std::vector<double> _tot_alpha;
     std::vector<double> _tot_temp;
     std::vector<double> _tot_rp;
     std::vector<double> _tot_vp;
