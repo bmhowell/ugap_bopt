@@ -17,7 +17,8 @@ obj_fns gen_data(float tfinal,
                 sim &simi,
                 std::string file_path,
                 bool multi_thread, 
-                int obj_fn) {
+                int obj_fn,
+                double weights[4]) {
     // print info (if not multi-threading)
 
     if (!multi_thread) {
@@ -48,10 +49,10 @@ obj_fns gen_data(float tfinal,
         VoxelSystem1.density2File();
     }
 
-    double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
-    double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
+    // double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
+    // double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
 
-    VoxelSystem1.simulate(simi.method, simi.save_voxel, obj_fn, pareto_weights);
+    VoxelSystem1.simulate(simi.method, simi.save_voxel, obj_fn, weights);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto t = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -86,7 +87,8 @@ void bootstrap(sim &sim_settings,
                int num_sims,
                std::string file_path,
                bool multi_thread, 
-               int obj_fn) {
+               int obj_fn,
+               double weights[4]) {
     // generate random values
 
     if (multi_thread) {
@@ -94,7 +96,7 @@ void bootstrap(sim &sim_settings,
         std::vector<std::mt19937> gens(num_sims);
 
         // Create an array of distributions
-        std::vector<std::uniform_real_distribution<double>> dis(num_sims);
+        std::vector< std::uniform_real_distribution<double> > dis(num_sims);
 
         // Seed each generator
         for (int id = 0; id < num_sims; ++id) {
@@ -127,7 +129,8 @@ void bootstrap(sim &sim_settings,
                              sim_settings,
                              file_path,
                              true, 
-                             obj_fn);
+                             obj_fn,
+                             weights);
             
             // store objective values in bopt
             b.obj_pi    = objectives.obj_pi;
@@ -190,7 +193,8 @@ void bootstrap(sim &sim_settings,
                              sim_settings,
                              file_path,
                              false, 
-                             obj_fn);
+                             obj_fn,
+                             weights);
             
             // store objective values in bopt
             b.obj_pi    = objectives.obj_pi;

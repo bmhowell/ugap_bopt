@@ -34,9 +34,9 @@ class BayesianOpt {
 
     void qLCB(int iter);
 
-    void evaluate_samples(int obj_fn);
+    void evaluate_samples(int obj_fn, double wts[4]);
 
-    void optimize(int obj_fn);
+    void optimize(int obj_fn, double wts[4]);
 
 private:
     // MEMBER VARIABLES

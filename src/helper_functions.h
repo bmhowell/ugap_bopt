@@ -21,7 +21,8 @@ obj_fns gen_data(float tfinal,
                  sim &simi,
                  std::string file_path,
                  bool multi_thread, 
-                 int obj_fn);
+                 int obj_fn,
+                 double weights[4]);
 
 void    bootstrap(sim &sim_settings,
                   constraints &c,
@@ -29,7 +30,8 @@ void    bootstrap(sim &sim_settings,
                   int num_sims,
                   std::string file_path,
                   bool multi_thread, 
-                  int obj_fn);
+                  int obj_fn,
+                  double weights[4]);
 
 void    write_to_file(bopt &b,
                       sim &sim_set,

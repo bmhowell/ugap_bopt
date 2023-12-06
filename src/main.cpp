@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
 
     // 1: PI, 2: PIdot, 3: Mdot, 4: M, 5: total
     int obj_fn = 5;
+    double default_weights[4] = {0.1, 0.2, 0.2, 0.5};
+    double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
 
     // MACBOOK PRO
     std::string file_path;
@@ -34,6 +36,7 @@ int main(int argc, char** argv) {
     std::cout << "\n--- INITIALIZING OPT. FRAMEWORK ---" << std::endl;
     std::cout << "saving to: " << file_path << std::endl;
     std::cout << "time_stepping: " << s.time_stepping << std::endl;
+
     // data storage
     std::vector<bopt> *bopti = new std::vector<bopt>;
 
@@ -43,10 +46,7 @@ int main(int argc, char** argv) {
     if (s.bootstrap) {
         ndata0 = omp_get_num_procs();
         std::cout << "Number of threads: " << ndata0 << std::endl;
-        bootstrap(s, c, *bopti, ndata0, file_path, multi_thread, obj_fn);
-
-        // // store data
-        // store_tot_data(*bopti, s, ndata0, file_path);
+        bootstrap(s, c, *bopti, ndata0, file_path, multi_thread, obj_fn, pareto_weights);
     } else {
         ndata0 = read_data(*bopti, file_path);
     }
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     
     // STEP 2: initialize function approximator and optimizer
     const int n_dim = 5;            // number of optimization variables
-    const bool val  = false;         // validation toggle
+    const bool validate  = false;   // validation toggle
 
     // initialize function approximator
     // GaussianProcess model = GaussianProcess("RBF", file_path);
@@ -62,15 +62,15 @@ int main(int argc, char** argv) {
 
     // load model, n opt vars, constraints, settings, and file path into optimizer
     BayesianOpt optimizer(model, n_dim, c, s, file_path);
-    optimizer.load_data(*bopti, val);  // (bopti, _validate)
+    optimizer.load_data(*bopti, validate);  // (bopti, _validate)
 
     // STEP 3: train the model
     const bool pre_learned = false;
     optimizer.condition_model(pre_learned);
-    if (val) {optimizer.evaluate_model();};
+    if (validate) {optimizer.evaluate_model();};
 
     // STEP 4: optimize and evaluate new candidate simulations
-    optimizer.optimize(obj_fn);
+    optimizer.optimize(obj_fn, pareto_weights);
 
     // Get the current time after the code segment finishes
     auto end = std::chrono::high_resolution_clock::now();

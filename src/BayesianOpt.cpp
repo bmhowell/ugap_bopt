@@ -215,7 +215,7 @@ void BayesianOpt::qLCB(int iter) {
     *_x_smpl     = (*_x_smpl)(inds_s, Eigen::all);
 }
 
-void BayesianOpt::evaluate_samples(int obj_fn) {
+void BayesianOpt::evaluate_samples(int obj_fn, double wts[4]) {
     // evaluate top candidates
     _num_evals = omp_get_num_procs();
     std::vector<bopt> voxels_evals;
@@ -230,9 +230,6 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
         b.uvi  = _x_smpl->coeff(id, 3);
         b.uvt  = _x_smpl->coeff(id, 4);
 
-        // init guess weights for multi-obj fn
-        double default_weights[4] = {0.1, 0.25, 0.25, 0.4};
-        double pareto_weights[4]  = {3.56574286e-09, 2.42560512e-03, 2.80839829e-01, 7.14916061e-01};
         // perform simulation with top candidates
         Voxel voxel_sim(_s.tfinal,
                         _s.dt,
@@ -246,7 +243,7 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
 
         voxel_sim.computeParticles(b.rp,
                                    b.vp);
-        voxel_sim.simulate(_s.method, _s.save_voxel, obj_fn, pareto_weights);
+        voxel_sim.simulate(_s.method, _s.save_voxel, obj_fn, wts);
 
         b.obj_pi    = voxel_sim.getObjPI();
         b.obj_pidot = voxel_sim.getObjPIDot();
@@ -328,7 +325,7 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
 
 }
 
-void BayesianOpt::optimize(int obj_fn) {
+void BayesianOpt::optimize(int obj_fn, double wts[4]) {
     std::cout << "\n===== OPTIMIZING =====" << std::endl;
     // step 1: uniformly sample domain from gaussian process
     this->sample_posterior();
@@ -337,7 +334,7 @@ void BayesianOpt::optimize(int obj_fn) {
     this->qLCB(0);
     
     // evaluate top candidates
-    this->evaluate_samples(obj_fn);
+    this->evaluate_samples(obj_fn, wts);
 
     // run loop
     for (int iter = 1; iter < 10; ++iter) {
@@ -355,7 +352,7 @@ void BayesianOpt::optimize(int obj_fn) {
         this->qLCB(iter);
 
         // evaluate top candidates
-        this->evaluate_samples(obj_fn);
+        this->evaluate_samples(obj_fn, wts);
 
         // print current best costs
         std::cout << "\ncurrent best costs: " << std::endl;
