@@ -38,6 +38,10 @@ int main(int argc, char** argv) {
     std::cout << "saving to: " << file_path << std::endl;
     std::cout << "time_stepping: " << s.time_stepping << std::endl;
 
+    // initialize function approximator with kernel choice {"RBF", "RQK", "LOC_PER"}
+    std::string kernel = "LOC_PER";
+    std::cout << "MODEL: " << kernel << std::endl;
+
     // data storage
     std::vector<bopt> *bopti = new std::vector<bopt>;
 
@@ -57,9 +61,9 @@ int main(int argc, char** argv) {
     const int n_dim = 5;            // number of optimization variables
     const bool validate  = false;   // validation toggle
 
-    // initialize function approximator with kernel choice {"RBF", "RQK", "LOC_PER"}
-    GaussianProcess model = GaussianProcess("LOC_PER", file_path);
-
+    // itialize GP model
+    GaussianProcess model = GaussianProcess(kernel, file_path);
+    
     // load model, n opt vars, constraints, settings, and file path into optimizer
     BayesianOpt optimizer(model, n_dim, c, s, file_path);
     optimizer.load_data(*bopti, validate);  // (bopti, _validate)
