@@ -192,6 +192,8 @@ public:
     double get_sigma_param();
     
     double get_noise_param();
+
+    double get_period_param();
 };
 
 #endif // SRC_GAUSSIANPROCESS_H_

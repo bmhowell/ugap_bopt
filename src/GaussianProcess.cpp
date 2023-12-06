@@ -234,6 +234,10 @@ double GaussianProcess::get_noise_param(){
     return _sn;
 }
 
+double GaussianProcess::get_period_param(){
+    return _p;
+}
+
 // PRIVATE MEMBER FUNCTIONS
 /* infrastructure functions */
 void GaussianProcess::kernelGP(Eigen::MatrixXd &X, Eigen::MatrixXd &Y, 

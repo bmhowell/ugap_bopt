@@ -311,6 +311,7 @@ void BayesianOpt::evaluate_samples(int obj_fn) {
     _tot_length.push_back(_model.get_length_param());
     _tot_sigma.push_back(_model.get_sigma_param());
     _tot_noise.push_back(_model.get_noise_param());
+    _tot_period.push_back(_model.get_period_param());
     
     // store best candidates over time
     _tot_temp.push_back(_bopti[ind].temp);
@@ -550,6 +551,7 @@ void BayesianOpt::save_cost() {
     my_file << "length, " 
             << "sigma, "
             << "noise, "
+            << "period, "
             << "temp, "
             << "rp, "
             << "vp, "
@@ -567,6 +569,7 @@ void BayesianOpt::save_cost() {
         my_file << _tot_length[ind]     << ", "
                 << _tot_sigma[ind]      << ", "
                 << _tot_noise[ind]      << ", "
+                << _tot_period[ind]     << ", "
                 << _tot_temp[ind]       << ", "
                 << _tot_rp[ind]         << ", "
                 << _tot_vp[ind]         << ", "
