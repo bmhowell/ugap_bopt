@@ -6,20 +6,7 @@
 
 Simuluation and optimization of Urethane-Grafated-Acrylate Polymer (UGAP) using a Bayesian Optimizaiton framework. 
 
-The simulation is modeled using reaction-diffusions and heat equations of the general 3D forms: 
-
-$$ \frac{\partial [A]_i]}{\partial t} = \nabla_x \cdot (\kappa \nabla_x [A]_i_i]) + \sum_{j=1}^{N} k^{consume}_j [A]_i + \sum_{j=1}^{N} k^{generate}_j [A]_i$$
-
-for reaction-diffusion and:
-
-$$ \rho C \frac{\partial \theta]}{\partial t} = \nabla_x \cdot (K \nabla_x \theta) + \Delta H_{rxn} + I_{abs}$$. 
-
-for heat.
-
-The model is solved spatially and temporally using the Crank-Nicolson method. 
-
-Bayesian Optimization is implemented using the Squared Exponential, Rational Quadratic, and Local-Periodic Kernels for the surrogate modeling, and an Upper Confidence Interval optimizer for the exploration/exploitation tradeoff.
-
+Example simulations can be found on my [personal website](https://bmhowell.github.io/pages/rxns.html).
 
 ## Table of Contents
 
