@@ -4,7 +4,7 @@
 
 ## Description
 
-Simuluation and optimization of Urethane-Grafated-Acrylate Polymer (UGAP) using a Bayesian Optimizaiton framework. 
+Simuluation and optimization of Urethane-Grafted-Acrylate Polymer (UGAP) using a Bayesian Optimizaiton framework. 
 
 Example simulations can be found on my [personal website](https://bmhowell.github.io/pages/rxns.html).
 
